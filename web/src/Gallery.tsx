@@ -7,10 +7,10 @@ import { ModelThumbnailProvider } from './GlobalModelRenderer';
 import { getGalleryTheme, galleryThemeClass } from './theme';
 
 function GalleryShell() {
-    const { settings } = useGalleryContext();
+    const { effectiveDarkMode } = useGalleryContext();
     return (
-        <div className={galleryThemeClass(settings.darkMode)}>
-            <ConfigProvider theme={getGalleryTheme(settings.darkMode)}>
+        <div className={galleryThemeClass(effectiveDarkMode)}>
+            <ConfigProvider theme={getGalleryTheme(effectiveDarkMode)}>
                 <App>
                     <ModelThumbnailProvider>
                         <GalleryOpenButton />

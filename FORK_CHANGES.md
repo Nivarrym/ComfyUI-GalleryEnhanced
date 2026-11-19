@@ -20,7 +20,8 @@ is the unmodified 2.7.1 import.
   delete and Clear.
 - **Batch delete** is one `POST /Gallery/delete` request (`image_paths`) instead
   of N sequential requests; per-file failures are reported and successful
-  deletions are removed from the grid optimistically.
+  deletions are removed from the grid optimistically. The confirmation dialog is
+  rendered above the gallery modal.
 - **Per-card trash button** appears in the top-right corner on hover/focus and
   deletes that one asset after a compact confirmation.
 
@@ -29,6 +30,8 @@ is the unmodified 2.7.1 import.
 - The whole gallery now follows `darkMode`: modal, header, sidebar/tree, grid,
   cards, selection toolbar, settings, performance panel, metadata view, raw JSON
   viewer and scrollbars.
+- Toggling Dark Mode in Settings now previews the theme immediately, before
+  saving. Cancel/close reverts to the saved theme; Save persists it.
 - Ant Design tokens and CSS variables are used instead of hard-coded colours;
   light mode remains the default and is unchanged visually.
 
@@ -48,8 +51,9 @@ is the unmodified 2.7.1 import.
 - **Paged preview loading** on the client: a queue with 6 concurrent requests,
   object-URL cache, fallback to the original on error, and virtualized mounting
   from `react-window`.
-- **Video loading**: videos are no longer all autoplayed; `preload="metadata"` +
-  play on hover (setting `autoPlayVideos` still controls it).
+- **Video hover previews**: hovering a video card plays it looped. Hold
+  **Shift** while hovering to hear the audio; releasing Shift mutes it again.
+  Leaving the card pauses the preview.
 - **Performance report** (bug icon in the header, or Settings → Performance):
   client timeline (bootstrap, settings, listing, first paint, thumbnail paging),
   server timings from `/Gallery/perf`, scan cache hit/miss and thumbnail stats.

@@ -8,7 +8,7 @@ import { GithubOutlined, LineChartOutlined } from '@ant-design/icons';
 import { galleryThemeClass } from './theme';
 
 const GallerySettingsModal = () => {
-    const { showSettings, setShowSettings, settings, setSettings, setShowPerf } = useGalleryContext();
+    const { showSettings, setShowSettings, settings, setSettings, setShowPerf, effectiveDarkMode, setThemePreview } = useGalleryContext();
     // Staged (unsaved) settings
     const [staged, setStaged] = useSetState<SettingsState>(settings);
     const [extInput, setExtInput] = useState("");
@@ -17,30 +17,36 @@ const GallerySettingsModal = () => {
     useEffect(() => {
         if (showSettings) {
             setStaged(settings);
+            setThemePreview(null);
             setExtInput((settings && (settings as any).scanExtensions) ? (settings as any).scanExtensions.join(', ') : "");
         }
-    }, [showSettings, settings, setStaged]);
+    }, [showSettings, settings, setStaged, setThemePreview]);
 
     // Save staged settings to context and close
     const handleSave = () => {
         const exts = extInput.split(',').map(s => s.trim().replace(/^\./, '')).filter(s => s);
         const newSettings = { ...staged, scanExtensions: exts } as SettingsState;
+        setThemePreview(null);
         setSettings(newSettings);
         setShowSettings(false);
     };
     // Cancel: just close modal (staged will reset on next open)
     const handleCancel = () => {
+        setThemePreview(null);
         setShowSettings(false);
     };
 
     return (
         <Modal
             zIndex={BASE_Z_INDEX + 1}
-            rootClassName={`gallery-settings-modal-root ${galleryThemeClass(settings.darkMode)}`}
+            rootClassName={`gallery-settings-modal-root ${galleryThemeClass(effectiveDarkMode)}`}
             title={"Settings"}
             open={showSettings}
             centered
-            afterOpenChange={setShowSettings}
+            afterOpenChange={(open) => {
+                setShowSettings(open);
+                if (!open) setThemePreview(null);
+            }}
             onOk={handleSave}
             onCancel={handleCancel}
             footer={(
@@ -72,7 +78,10 @@ const GallerySettingsModal = () => {
                             checkedChildren={"Dark Mode"}
                             unCheckedChildren={"Light Mode"}
                             checked={staged.darkMode}
-                            onChange={checked => setStaged({ darkMode: checked })}
+                            onChange={checked => {
+                                setStaged({ darkMode: checked });
+                                setThemePreview(checked);
+                            }}
                         />
                         <Switch
                             checkedChildren={"Play Videos on Hover"}

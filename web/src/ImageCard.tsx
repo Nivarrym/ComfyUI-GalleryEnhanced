@@ -5,7 +5,7 @@ import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
 import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
 import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import { useGalleryContext } from './GalleryContext';
 import { BASE_PATH } from './ComfyAppApi';
@@ -85,10 +85,66 @@ function ImageCard({
     const videoRef = useRef<HTMLVideoElement>(null);
     const [dragging, setDragging] = useState(false);
     const [videoPlaying, setVideoPlaying] = useState(false);
+    const [videoMuted, setVideoMuted] = useState(true);
+    const [videoHovered, setVideoHovered] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, ImageCardWidth, image.type === 'image');
     const originalSrc = `${BASE_PATH}${image.url}`;
     const selected = selectedSet.has(image.url);
+
+    // Shift toggles the sound of the hovered looping video. Track Shift while
+    // the pointer stays on the card so keydown/keyup both work.
+    useEffect(() => {
+        if (image.type !== 'media' || !videoHovered) return;
+        const syncMuted = (event: KeyboardEvent) => {
+            const video = videoRef.current;
+            if (!video) return;
+            const muted = !event.shiftKey;
+            video.muted = muted;
+            setVideoMuted(muted);
+            if (!video.paused) {
+                video.play().catch(() => { });
+            }
+        };
+        window.addEventListener('keydown', syncMuted);
+        window.addEventListener('keyup', syncMuted);
+        return () => {
+            window.removeEventListener('keydown', syncMuted);
+            window.removeEventListener('keyup', syncMuted);
+        };
+    }, [image.type, videoHovered]);
+
+    const handleCardMouseEnter = (event: React.MouseEvent) => {
+        if (image.type !== 'media') return;
+        setVideoHovered(true);
+        const video = videoRef.current;
+        if (!video) return;
+        const muted = !event.shiftKey;
+        video.muted = muted;
+        video.loop = true;
+        setVideoMuted(muted);
+        if (settings.autoPlayVideos) {
+            video.play().catch(() => {
+                // Audible autoplay can be blocked until a user gesture; keep
+                // the visual preview running muted and retry on the next event.
+                video.muted = true;
+                setVideoMuted(true);
+                video.play().catch(() => { });
+            });
+        }
+    };
+
+    const handleCardMouseLeave = () => {
+        if (image.type !== 'media') return;
+        setVideoHovered(false);
+        const video = videoRef.current;
+        if (video) {
+            video.pause();
+            video.muted = true;
+        }
+        setVideoMuted(true);
+        setVideoPlaying(false);
+    };
 
     useDrag(
         {
@@ -186,6 +242,8 @@ function ImageCard({
             }}
             onClickCapture={handleClickCapture}
             onClick={handleCardClick}
+            onMouseEnter={handleCardMouseEnter}
+            onMouseLeave={handleCardMouseLeave}
         >
             {image.type == "image" ? (<>
                 {thumbnailState === 'loading' && <div className="gallery-thumb-placeholder" />}
@@ -241,18 +299,9 @@ function ImageCard({
                     }}
                     src={originalSrc}
                     loop
-                    muted
+                    muted={videoMuted}
                     playsInline
                     preload="metadata"
-                    onMouseEnter={() => {
-                        if (settings.autoPlayVideos) {
-                            videoRef.current?.play().catch(() => { });
-                        }
-                    }}
-                    onMouseLeave={() => {
-                        videoRef.current?.pause();
-                        setVideoPlaying(false);
-                    }}
                     onPlaying={() => setVideoPlaying(true)}
                     onPause={() => setVideoPlaying(false)}
                     onClick={() => {

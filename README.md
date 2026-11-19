@@ -17,6 +17,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 
 *   **Real-time Gallery Updates:** Leveraging ComfyUI's event system, the gallery instantly reflects new images, videos, and GIFs saved to your ComfyUI output folder and no manual refresh needed!
 *   **Video and GIF Support:** Seamlessly displays and plays `.mp4`, `.webm` videos and `.gif` animations alongside your generated images.
+*   **Video Hover Preview (v2.8.1):** Hovering a video card plays it looped. Hold Shift while hovering for sound; release Shift to mute. Leaving the card pauses it.
 *   **3D Model Support (v2.7.0):** View `.obj`, `.glb`, `.gltf`, `.fbx`, `.stl`, `.usd`, `.usdz` 3D model files directly in the gallery with auto-generated thumbnails and an interactive 3D viewer.
 *   **Image Metadata Inspection:** Extracts and displays detailed metadata embedded in your image files (PNG and JPEG).
 *   **Enhanced Metadata Parser (v1.5.0, further improved in v2.0.0):** A robust, customizable, and modular metadata parser provides accurate and flexible extraction of workflow details.
@@ -42,7 +43,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Open Button Box Query:** Specify where the "Open Gallery" button is placed.
     *   **Open Button Label:** Personalize the text on the "Open Gallery" button.
     *   **Floating Button Mode:** Enable a draggable, floating "Open Gallery" button. Save its position across sessions.
-    *   **Auto Play Videos:** Control whether videos automatically play.
+    *   **Play Videos on Hover:** Control whether videos play automatically when hovering a card.
     *   **Hide Open Button:** Hide/Show the Open Gallery Button.
     *   **Show Date Divider:** Control visibility of date dividers in the grid.
     *   **Dark/Light Mode Toggle (v2.0.0):** Instantly switch between dark and light themes for comfortable viewing, directly from the settings panel.
@@ -120,6 +121,11 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.8.1 (fork):**
+    *   **Live theme preview:** toggling Dark Mode in Settings applies instantly; Cancel/close reverts, Save persists.
+    *   **Batch delete fix:** the confirmation dialog now renders above the gallery modal, so Delete Selected works from the bottom toolbar.
+    *   **Video hover:** hovering a video card plays it looped; hold Shift for sound, release to mute, leave to pause.
 
 *   **v2.8.0 (fork):**
     *   **Selection:** Shift-click ranges, box-drag selection (Ctrl/Cmd additive), Ctrl/Cmd+A, Esc clears, Delete/Backspace deletes selected.

@@ -11,8 +11,8 @@ import { BASE_Z_INDEX } from './ComfyAppApi';
 import { galleryThemeClass } from './theme';
 
 const GalleryModal = () => {
-    const { open, setOpen, size, showSettings, siderCollapsed, settings } = useGalleryContext();
-    const themeClass = galleryThemeClass(settings.darkMode);
+    const { open, setOpen, size, showSettings, siderCollapsed, effectiveDarkMode } = useGalleryContext();
+    const themeClass = galleryThemeClass(effectiveDarkMode);
     const modalWidth = size?.width && size.width > 320 ? size.width : '96vw';
 
     return (

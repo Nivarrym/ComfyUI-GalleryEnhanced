@@ -34,7 +34,7 @@ export function MetadataView({
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
 
-    const { mutate, currentFolder, settings, deleteAssets } = useGalleryContext();
+    const { mutate, currentFolder, deleteAssets, effectiveDarkMode } = useGalleryContext();
     const { token } = theme.useToken();
 
     // Metadata is loaded lazily by the server. Fetch it only when the info view
@@ -451,7 +451,7 @@ export function MetadataView({
             )}
             <Modal
                 zIndex={BASE_Z_INDEX + 2}
-                rootClassName={`gallery-modal-root ${galleryThemeClass(settings.darkMode)}`}
+                rootClassName={`gallery-modal-root ${galleryThemeClass(effectiveDarkMode)}`}
                 title={image ? `Raw Metadata: ${image.name}` : 'Raw Metadata'}
                 open={showRawMetadata}
                 onCancel={() => setShowRawMetadata(false)}
@@ -469,7 +469,7 @@ export function MetadataView({
                         onTouchStart={e => e.stopPropagation()}
                     >
                         <ReactJsonView
-                            theme={settings.darkMode ? "apathy" : "rjv-default"}
+                            theme={effectiveDarkMode ? "apathy" : "rjv-default"}
                             src={metadata || {}}
                             name={false}
                             collapsed={2}

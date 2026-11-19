@@ -108,6 +108,9 @@ export interface GalleryContextType {
     setAutoCompleteOptions: React.Dispatch<React.SetStateAction<NonNullable<AutoCompleteProps['options']>>>;
     settings: SettingsState;
     setSettings: (v: SettingsState) => void;
+    themePreview: boolean | null;
+    setThemePreview: Dispatch<SetStateAction<boolean | null>>;
+    effectiveDarkMode: boolean;
     selectedImages: string[];
     selectedSet: Set<string>;
     setSelectedImages: React.Dispatch<React.SetStateAction<string[]>>;
@@ -154,6 +157,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [showSettings, setShowSettings] = useState(false);
     const [showRawMetadata, setShowRawMetadata] = useState(false);
     const [showPerf, setShowPerf] = useState(false);
+    const [themePreview, setThemePreview] = useState<boolean | null>(null);
     const [sortMethod, setSortMethod] = useState<'Newest' | 'Oldest' | 'Name ↑' | 'Name ↓'>("Newest");
     const [imageInfoName, setImageInfoName] = useState<string | undefined>(undefined);
     const [open, setOpen] = useState(false);
@@ -174,6 +178,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     });
 
     const mergedSettings = useMemo<SettingsState>(() => mergeSettings(DEFAULT_SETTINGS, settingsState), [settingsState]);
+    const effectiveDarkMode = themePreview ?? !!mergedSettings.darkMode;
     const settingsRef = useRef<SettingsState>(mergedSettings);
     const bootstrappedRef = useRef(false);
     const appliedMonitorKeyRef = useRef<string>('');
@@ -369,6 +374,12 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         setPerfEnabled(FORCE_PERF || !!mergedSettings.debugPerf);
     }, [mergedSettings.debugPerf]);
 
+    // A theme toggle in the settings dialog is a live preview; never leak it
+    // outside the dialog or into the persisted settings.
+    useEffect(() => {
+        if (!open) setThemePreview(null);
+    }, [open]);
+
     // Keep the folder tree usable when the selected folder disappears.
     useEffect(() => {
         if (data && data.folders) {
@@ -558,6 +569,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     }, [removeAssets]);
 
     const saveSettings = useCallback((newSettings: SettingsState) => {
+        setThemePreview(null);
         setPerfEnabled(FORCE_PERF || !!newSettings.debugPerf);
         setSettings(newSettings);
         ComfyAppApi.saveSettings(newSettings);
@@ -626,6 +638,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         setAutoCompleteOptions,
         settings: mergedSettings,
         setSettings: saveSettings,
+        themePreview,
+        setThemePreview,
+        effectiveDarkMode,
         selectedImages,
         selectedSet,
         setSelectedImages,
@@ -666,6 +681,8 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         autoCompleteOptions,
         mergedSettings,
         saveSettings,
+        themePreview,
+        effectiveDarkMode,
         selectedImages,
         selectedSet,
         selectionAnchor,

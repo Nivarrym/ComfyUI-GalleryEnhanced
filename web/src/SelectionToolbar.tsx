@@ -6,7 +6,7 @@ import CheckSquareOutlined from '@ant-design/icons/lib/icons/CheckSquareOutlined
 import CloseOutlined from '@ant-design/icons/lib/icons/CloseOutlined';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
-import { BASE_PATH } from './ComfyAppApi';
+import { BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
 import { useGalleryContext } from './GalleryContext';
 
 /**
@@ -30,6 +30,7 @@ const SelectionToolbar = () => {
         if (selectedImages.length === 0) return;
         const urls = [...selectedImages];
         modal.confirm({
+            zIndex: BASE_Z_INDEX + 10,
             title: `Delete ${urls.length} asset${urls.length === 1 ? '' : 's'}?`,
             content: 'This permanently removes the selected files from disk. This cannot be undone.',
             okText: `Delete (${urls.length})`,

@@ -27,7 +27,7 @@ function eventDetail(event: PerfEvent): string {
 }
 
 const PerfPanel = () => {
-    const { showPerf, setShowPerf, scanInfo, settings } = useGalleryContext();
+    const { showPerf, setShowPerf, scanInfo, settings, effectiveDarkMode } = useGalleryContext();
     const { message } = App.useApp();
     const [server, setServer] = useState<ServerPerfResponse | undefined>(undefined);
     const [loading, setLoading] = useState(false);
@@ -85,7 +85,7 @@ const PerfPanel = () => {
     return (
         <Modal
             zIndex={BASE_Z_INDEX + 2}
-            rootClassName={`gallery-modal-root ${galleryThemeClass(settings.darkMode)}`}
+            rootClassName={`gallery-modal-root ${galleryThemeClass(effectiveDarkMode)}`}
             title="Performance report"
             open={showPerf}
             onCancel={() => setShowPerf(false)}
