@@ -8,6 +8,7 @@ import pathlib
 import threading
 import asyncio
 import shutil
+import subprocess
 import sys
 
 import folder_paths
@@ -497,6 +498,68 @@ async def move_image(request):
         import traceback
         traceback.print_exc()
         return web.Response(status=500, text=str(e))
+
+
+# ---------------------------------------------------------------------------
+# External file actions (file manager / default application)
+# ---------------------------------------------------------------------------
+
+def _reveal_in_file_manager(path):
+    """Select/focus *path* in the host's file manager (best effort)."""
+    if os.name == "nt":
+        # Explorer accepts /select, followed by the path as the next argument.
+        subprocess.Popen(["explorer.exe", "/select,", path], close_fds=True)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", "-R", path])
+    else:
+        subprocess.Popen(["xdg-open", os.path.dirname(path) or path])
+
+
+def _open_with_default_app(path):
+    """Open *path* with the host's default associated application."""
+    if os.name == "nt":
+        os.startfile(path)  # type: ignore[attr-defined]
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+
+
+def _resolve_action_asset(raw_path):
+    if not raw_path:
+        raise gallery_paths.GalleryPathError("image_path is required", 400)
+    resolved = gallery_paths.resolve_gallery_path(get_static_root(), raw_path)
+    if not os.path.isfile(resolved.path):
+        raise gallery_paths.GalleryPathError("File not found", 404)
+    return resolved
+
+
+@PromptServer.instance.routes.post("/Gallery/reveal")
+async def reveal_asset(request):
+    try:
+        data = await request.json()
+        resolved = _resolve_action_asset(data.get("image_path") if isinstance(data, dict) else None)
+        await asyncio.to_thread(_reveal_in_file_manager, resolved.path)
+        return web.json_response({"ok": True})
+    except gallery_paths.GalleryPathError as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=e.status)
+    except Exception as e:
+        gallery_log(f"Error revealing asset: {e}")
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+@PromptServer.instance.routes.post("/Gallery/open")
+async def open_asset_external(request):
+    try:
+        data = await request.json()
+        resolved = _resolve_action_asset(data.get("image_path") if isinstance(data, dict) else None)
+        await asyncio.to_thread(_open_with_default_app, resolved.path)
+        return web.json_response({"ok": True})
+    except gallery_paths.GalleryPathError as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=e.status)
+    except Exception as e:
+        gallery_log(f"Error opening asset: {e}")
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
 # ---------------------------------------------------------------------------

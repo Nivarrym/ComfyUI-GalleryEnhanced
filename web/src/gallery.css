@@ -99,33 +99,40 @@
     pointer-events: none;
 }
 
-.gallery-card-delete {
+.gallery-card-actions {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     opacity: 0;
     transform: translateY(-2px);
     transition: opacity 0.12s ease, transform 0.12s ease;
     pointer-events: none;
 }
 
-.image-card:hover .gallery-card-delete,
-.image-card:focus-within .gallery-card-delete,
-.gallery-card-delete:focus-visible {
+.image-card:hover .gallery-card-actions,
+.image-card:focus-within .gallery-card-actions {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
 }
 
-.gallery-card-delete .ant-btn {
+.gallery-card-actions .ant-btn {
     background: rgba(0, 0, 0, 0.55);
     border-color: transparent;
     color: #fff;
     backdrop-filter: blur(4px);
 }
 
-.gallery-card-delete .ant-btn:hover {
+.gallery-card-actions .ant-btn:hover {
+    background: #1890ff !important;
+    color: #fff !important;
+}
+
+.gallery-card-actions .ant-btn-dangerous:hover {
     background: #ff4d4f !important;
     color: #fff !important;
 }

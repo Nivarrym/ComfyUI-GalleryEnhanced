@@ -33,6 +33,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Batch Delete (v2.3.0, improved in v2.8.0):** Select multiple images (or entire folders) and delete them in one request with confirmation and per-file error feedback. `Delete`/`Backspace` triggers the same action.
 *   **Fast Selection (v2.8.0):** Shift-click range selection, box-drag selection with Ctrl/Cmd to add, Ctrl/Cmd+A select all, Esc clear.
 *   **Quick Delete (v2.8.0):** A trash button appears in the corner of each card on hover.
+*   **Reveal / Open Asset (v2.10.0):** On hover, each card also offers “Show in file manager” (selects the file in Explorer/Finder) and “Open in default application” buttons.
 *   **Select Entire Folder (v2.3.0):** Ctrl/Cmd+Click a folder in the sidebar to select or deselect all images in that folder for batch operations (download/delete). Visual highlight indicates full-folder selection.
 *   **Improved Batch Download (v2.3.0):** Download all selected images (including from multiple folders) as a ZIP file. 
     *   ⚠️ **Browser Limitation:** Batch download is performed client-side using JavaScript. Downloading very large folders or thousands of images may be limited by your browser's memory and performance. For best results, select a reasonable number of images at a time.
@@ -123,6 +124,9 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.10.0 (fork):**
+    *   **Reveal and open:** per-card buttons to select the asset in the host file manager and to open it in the default associated application.
 
 *   **v2.9.0 (fork):**
     *   **Preview size slider:** bottom-left slider resizes asset cards live (160–600 px) and persists the choice.

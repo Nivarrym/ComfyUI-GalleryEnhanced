@@ -20,6 +20,11 @@ export interface DeleteResult {
     count: number;
 }
 
+export interface AssetActionResult {
+    ok: boolean;
+    error?: string;
+}
+
 export interface ServerPerfRecord {
     label: string;
     ms: number;
@@ -78,6 +83,12 @@ const mockApi = {
                     headers: { "Content-Type": "application/json" },
                 });
             }
+            if (url === "/Gallery/reveal" || url === "/Gallery/open") {
+                return new Response(JSON.stringify({ ok: true }), {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
             if (url === "/Gallery/monitor/start") {
                 return { ok: true, text: async () => "{\"status\":\"started\"}" };
             }
@@ -129,6 +140,29 @@ function normalizeDeleteResult(payload: any, requested: string[], ok: boolean): 
         failed: requested.map((path) => ({ path, error: 'delete failed' })),
         count: 0,
     };
+}
+
+async function postAssetAction(url: string, imagePath: string): Promise<AssetActionResult> {
+    try {
+        const response = await app.api.fetchApi(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_path: imagePath }),
+        });
+        let payload: any = undefined;
+        try {
+            payload = await response.json();
+        } catch { }
+        if (response.ok && payload?.ok !== false) {
+            return { ok: true };
+        }
+        return {
+            ok: false,
+            error: payload?.error || `HTTP ${response.status}`,
+        };
+    } catch (error) {
+        return { ok: false, error: String(error) };
+    }
 }
 
 export const ComfyAppApi = {
@@ -238,6 +272,10 @@ export const ComfyAppApi = {
         const result = await ComfyAppApi.deleteImages([imagePath]);
         return result.deleted.includes(imagePath) || (result.deleted.length > 0 && result.failed.length === 0);
     },
+    revealAsset: (imagePath: string): Promise<AssetActionResult> =>
+        postAssetAction('/Gallery/reveal', imagePath),
+    openAsset: (imagePath: string): Promise<AssetActionResult> =>
+        postAssetAction('/Gallery/open', imagePath),
     // Settings endpoints
     fetchSettings: async () => {
         try {

@@ -2,13 +2,15 @@ import { App, Button, Image, Popconfirm, Tooltip, Typography } from 'antd';
 import type { FileDetails } from './types';
 import CheckCircleFilled from '@ant-design/icons/lib/icons/CheckCircleFilled';
 import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
+import ExportOutlined from '@ant-design/icons/lib/icons/ExportOutlined';
+import FolderOpenOutlined from '@ant-design/icons/lib/icons/FolderOpenOutlined';
 import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
 import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import { useGalleryContext } from './GalleryContext';
-import { BASE_PATH } from './ComfyAppApi';
+import { BASE_PATH, ComfyAppApi } from './ComfyAppApi';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import { useThumbnail } from './thumbnails';
 
@@ -160,6 +162,7 @@ function ImageCard({
 
     // Modifier clicks must not open the antd preview; handle them in capture phase.
     const handleClickCapture = (event: React.MouseEvent) => {
+        if ((event.target as HTMLElement).closest('.gallery-card-actions')) return;
         if (!(event.ctrlKey || event.metaKey || event.shiftKey)) return;
         event.preventDefault();
         event.stopPropagation();
@@ -184,6 +187,24 @@ function ImageCard({
             }
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const handleReveal = async () => {
+        const result = await ComfyAppApi.revealAsset(image.url);
+        if (result.ok) {
+            message.success('Shown in file manager');
+        } else {
+            message.error(result.error || 'Failed to show the asset in the file manager');
+        }
+    };
+
+    const handleOpenExternal = async () => {
+        const result = await ComfyAppApi.openAsset(image.url);
+        if (result.ok) {
+            message.success('Opened in the default application');
+        } else {
+            message.error(result.error || 'Failed to open the asset');
         }
     };
 
@@ -322,11 +343,31 @@ function ImageCard({
             {selected && <CheckCircleFilled className="gallery-card-selected-check" />}
 
             <div
-                className="gallery-card-delete"
+                className="gallery-card-actions"
                 onClick={(event) => { event.stopPropagation(); event.preventDefault(); }}
                 onPointerDown={(event) => event.stopPropagation()}
                 onMouseDown={(event) => event.stopPropagation()}
             >
+                <Tooltip title="Show in file manager">
+                    <Button
+                        className="gallery-card-action"
+                        shape="circle"
+                        size="small"
+                        icon={<FolderOpenOutlined />}
+                        onClick={handleReveal}
+                        aria-label={`Show ${image.name} in file manager`}
+                    />
+                </Tooltip>
+                <Tooltip title="Open in default application">
+                    <Button
+                        className="gallery-card-action"
+                        shape="circle"
+                        size="small"
+                        icon={<ExportOutlined />}
+                        onClick={handleOpenExternal}
+                        aria-label={`Open ${image.name} in default application`}
+                    />
+                </Tooltip>
                 <Popconfirm
                     title="Delete asset?"
                     description={image.name}

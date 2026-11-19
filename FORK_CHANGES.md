@@ -15,6 +15,14 @@ is the unmodified 2.7.1 import.
   folder tree to resize it (`sidebarWidth` setting, persisted). Double-click the
   divider to reset it to 320 px.
 
+### External file actions
+
+- Each card has hover buttons to **show the asset in the host file manager**
+  (Explorer `/select`, Finder `open -R`, `xdg-open` on Linux) and to **open it in
+  the default associated application** (`os.startfile` / `open` / `xdg-open`).
+- Both actions run on the machine hosting ComfyUI, not in the browser.
+- Paths are validated with the same realpath containment as delete/thumbnail.
+
 ### Selection and batch operations
 
 - **Ctrl/Cmd+click** toggles one asset; **Shift+click** selects the range between
@@ -83,6 +91,8 @@ is the unmodified 2.7.1 import.
 | `GET /Gallery/metadata?path=...` | `{metadata, cached}` for one asset |
 | `GET /Gallery/thumbnail?path=...&w=...` | Cached WebP thumbnail (`X-Gallery-Thumb-Cache`) |
 | `POST /Gallery/delete` | `{image_path}` (legacy) or `{image_paths: [...]}`; returns `{deleted, failed, count}` |
+| `POST /Gallery/reveal` | `{image_path}`; selects the asset in the host file manager |
+| `POST /Gallery/open` | `{image_path}`; opens the asset with the default application |
 | `GET /Gallery/perf` | Recent server phase timings + aggregate scan/thumbnail stats |
 | `DELETE /Gallery/perf` | Reset those records |
 

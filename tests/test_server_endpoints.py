@@ -322,6 +322,42 @@ class GalleryServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(blocked.status, 400)
         self.assertTrue(os.path.exists(os.path.join(self.root, "sub", "moved.png")))
 
+    async def test_reveal_and_open_asset_endpoints(self):
+        asset = os.path.join(self.root, "a.png")
+        _write_png(asset)
+        payload = {"image_path": "/static_gallery/a.png"}
+
+        with mock.patch.object(server, "_reveal_in_file_manager") as reveal:
+            response = await self.client.post("/Gallery/reveal", json=payload)
+            self.assertEqual(response.status, 200)
+            self.assertEqual(await response.json(), {"ok": True})
+            reveal.assert_called_once()
+            self.assertTrue(os.path.samefile(reveal.call_args.args[0], asset))
+
+        with mock.patch.object(server, "_open_with_default_app") as open_app:
+            response = await self.client.post("/Gallery/open", json=payload)
+            self.assertEqual(response.status, 200)
+            self.assertEqual(await response.json(), {"ok": True})
+            open_app.assert_called_once()
+            self.assertTrue(os.path.samefile(open_app.call_args.args[0], asset))
+
+        with mock.patch.object(server, "_reveal_in_file_manager") as reveal:
+            missing = await self.client.post(
+                "/Gallery/reveal", json={"image_path": "/static_gallery/missing.png"}
+            )
+            self.assertEqual(missing.status, 404)
+            self.assertFalse((await missing.json())["ok"])
+            reveal.assert_not_called()
+
+            escaped = await self.client.post(
+                "/Gallery/reveal", json={"image_path": "/static_gallery/../a.png"}
+            )
+            self.assertEqual(escaped.status, 400)
+            reveal.assert_not_called()
+
+            bad_payload = await self.client.post("/Gallery/open", json={})
+            self.assertEqual(bad_payload.status, 400)
+
     async def test_perf_endpoints(self):
         _write_png(os.path.join(self.root, "a.png"))
         await self.client.get("/Gallery/images", params={"relative_path": "./"})

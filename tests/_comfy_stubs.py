@@ -140,6 +140,8 @@ def make_aiohttp_app(server_module):
     app.router.add_get("/Gallery/images", server_module.get_gallery_images)
     app.router.add_get("/Gallery/metadata", server_module.get_asset_metadata)
     app.router.add_get("/Gallery/thumbnail", server_module.get_asset_thumbnail)
+    app.router.add_post("/Gallery/reveal", server_module.reveal_asset)
+    app.router.add_post("/Gallery/open", server_module.open_asset_external)
     app.router.add_post("/Gallery/monitor/start", server_module.start_gallery_monitor)
     app.router.add_post("/Gallery/monitor/stop", server_module.stop_gallery_monitor)
     app.router.add_post("/Gallery/delete", server_module.delete_image)
