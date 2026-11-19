@@ -122,6 +122,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.8.2 (fork):**
+    *   **Header layout:** reserved space for the modal close button, so the sort control no longer overlaps the X.
+
 *   **v2.8.1 (fork):**
     *   **Live theme preview:** toggling Dark Mode in Settings applies instantly; Cancel/close reverts, Save persists.
     *   **Batch delete fix:** the confirmation dialog now renders above the gallery modal, so Delete Selected works from the bottom toolbar.

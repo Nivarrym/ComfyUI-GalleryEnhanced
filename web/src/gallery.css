@@ -320,6 +320,8 @@
 
 .gallery-modal-root .ant-modal-header {
     margin-bottom: 12px;
+    /* Reserve room for antd's close button so the sort control never sits under it. */
+    padding-right: 44px;
 }
 
 .gallery-modal-root .ant-modal-title {

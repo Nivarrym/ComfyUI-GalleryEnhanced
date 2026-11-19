@@ -30,6 +30,8 @@ is the unmodified 2.7.1 import.
 - The whole gallery now follows `darkMode`: modal, header, sidebar/tree, grid,
   cards, selection toolbar, settings, performance panel, metadata view, raw JSON
   viewer and scrollbars.
+- The header reserves space for the modal close button, so the sort control
+  does not run underneath the X.
 - Toggling Dark Mode in Settings now previews the theme immediately, before
   saving. Cancel/close reverts to the saved theme; Save persists it.
 - Ant Design tokens and CSS variables are used instead of hard-coded colours;
