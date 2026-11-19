@@ -1,13 +1,22 @@
 import { createRoot } from 'react-dom/client'
 import Gallery from './Gallery.tsx'
-import App from 'antd/es/app/App';
-import { DEFAULT_SETTINGS, STORAGE_KEY, type SettingsState } from './GalleryContext.tsx';
+import { DEFAULT_SETTINGS } from './GalleryContext.tsx';
 import { ComfyAppApi, OPEN_BUTTON_ID } from './ComfyAppApi.ts';
-import { ConfigProvider, theme } from 'antd';
-import { useLocalStorageState } from 'ahooks';
-import { ModelThumbnailProvider } from './GlobalModelRenderer';
+import { installPerfConsoleApi, perfMark, perfMeasure, setPerfEnabled } from './perf';
+import galleryCss from './gallery.css?inline';
 
-function waitForElement(selectorOrSelectors: string | string[], delay = 1500, timeout = 10000): Promise<Element | null> {
+// The pack is loaded by ComfyUI as an ES module, so attach the stylesheet
+// ourselves instead of relying on an index.html <link>.
+if (!document.getElementById('comfy-ui-gallery-styles')) {
+    const style = document.createElement('style');
+    style.id = 'comfy-ui-gallery-styles';
+    style.textContent = galleryCss;
+    document.head.appendChild(style);
+}
+
+installPerfConsoleApi();
+
+function waitForElement(selectorOrSelectors: string | string[], delay = 500, timeout = 10000): Promise<Element | null> {
     return new Promise((resolve) => {
         const selectors = Array.isArray(selectorOrSelectors) ? selectorOrSelectors : [selectorOrSelectors];
 
@@ -29,9 +38,6 @@ function waitForElement(selectorOrSelectors: string | string[], delay = 1500, ti
 
         // 1. Set Global Timeout (Max Time)
         maxTimeoutId = setTimeout(() => {
-            // Timeout reached. 
-            // If we have a pending match (waiting for grace period), return it.
-            // Otherwise return null.
             if (bestMatch) {
                 console.warn("Gallery: WaitForElement timeout reached, returning lower priority match.");
                 finish(bestMatch.el);
@@ -43,37 +49,28 @@ function waitForElement(selectorOrSelectors: string | string[], delay = 1500, ti
 
         // 2. Logic to check the DOM
         const check = () => {
-            // Iterate through selectors to find the highest priority one currently in the DOM
             for (let i = 0; i < selectors.length; i++) {
                 const selector = selectors[i];
                 const el = document.querySelector(selector);
 
                 if (el) {
-                    // Found a match at priority i
-
-                    // Case A: Highest priority (index 0). Resolve immediately.
+                    // Highest priority: resolve immediately.
                     if (i === 0) {
                         finish(el);
                         return;
                     }
 
-                    // Case B: Lower priority match found.
+                    // Lower priority: give the higher-priority selector a short grace period.
                     if (graceTimeoutId) {
-                        // We are already waiting.
-                        // If this match is better (lower index) than the pending one, update it.
                         if (bestMatch && i < bestMatch.index) {
                             bestMatch = { el, index: i };
                         }
                     } else {
-                        // First match found (and not #0). Start grace period.
                         bestMatch = { el, index: i };
                         graceTimeoutId = setTimeout(() => {
-                            // Grace period over, return the best match we found
                             if (bestMatch) finish(bestMatch.el);
                         }, delay);
                     }
-
-                    // Stop checking lower priorities for this pass
                     return;
                 }
             }
@@ -98,12 +95,16 @@ ComfyAppApi.registerExtension({
     name: "Gallery",
     async init() {
         (async () => {
+            const initStart = perfMark('extension.init');
 
             let settings = DEFAULT_SETTINGS;
             try {
                 const raw = localStorage.getItem('comfy-ui-gallery-settings');
                 if (raw) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
             } catch { }
+
+            const params = new URLSearchParams(window.location.search);
+            setPerfEnabled(!!settings.debugPerf || params.get('galleryPerf') === '1');
 
             // Define the priority list of selectors to look for
             const potentialSelectors = [
@@ -116,7 +117,9 @@ ComfyAppApi.registerExtension({
             console.log("Gallery: Waiting for UI to load...");
 
             // Wait until one of the selectors exists in the DOM
+            const waitStart = perfMark('waitForElement.start');
             const targetElement = await waitForElement(potentialSelectors);
+            perfMeasure('waitForElement', waitStart, { found: !!targetElement });
 
             console.log("Gallery: UI target found:", targetElement);
 
@@ -128,11 +131,12 @@ ComfyAppApi.registerExtension({
             const box = document.createElement("div");
             targetElement.appendChild(box);
 
+            const renderStart = perfMark('gallery.mount.start');
             createRoot(box).render(
                 <Main />,
             );
-
-            ComfyAppApi.startMonitoring(settings.relativePath);
+            perfMeasure('gallery.mount', renderStart);
+            perfMeasure('extension.init', initStart);
         })();
     },
     async nodeCreated(node: any) {
@@ -160,22 +164,5 @@ ComfyAppApi.registerExtension({
 });
 
 function Main() {
-    const [settingsState, setSettings] = useLocalStorageState<SettingsState>(STORAGE_KEY, {
-        defaultValue: DEFAULT_SETTINGS,
-        listenStorageChange: true,
-    });
-
-    return (<>
-        <ConfigProvider
-            theme={{
-                algorithm: settingsState.darkMode ? theme.darkAlgorithm : undefined,
-            }}
-        >
-            <App>
-                <ModelThumbnailProvider>
-                    <Gallery />
-                </ModelThumbnailProvider>
-            </App>
-        </ConfigProvider>
-    </>);
+    return <Gallery />;
 }

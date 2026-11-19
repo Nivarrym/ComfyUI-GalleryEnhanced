@@ -1,0 +1,333 @@
+/* Theme variables are scoped by the class applied to modal roots and the gallery wrapper. */
+.gallery-theme {
+    --gallery-accent: #1890ff;
+    --gallery-selection-bg: rgba(24, 144, 255, 0.18);
+    --gallery-hover-bg: rgba(255, 255, 255, 0.08);
+    --gallery-marquee-bg: rgba(24, 144, 255, 0.16);
+    --gallery-overlay-bg: rgba(0, 0, 0, 0.55);
+    --gallery-scroll-thumb: rgba(140, 140, 140, 0.55);
+}
+
+.gallery-theme.gallery-theme-light {
+    color-scheme: light;
+    --gallery-bg: #ffffff;
+    --gallery-bg-elevated: #ffffff;
+    --gallery-bg-sunken: #f5f5f5;
+    --gallery-border: #e8e8e8;
+    --gallery-border-strong: #d9d9d9;
+    --gallery-text: rgba(0, 0, 0, 0.88);
+    --gallery-text-secondary: rgba(0, 0, 0, 0.55);
+    --gallery-card-bg: #f0f2f5;
+    --gallery-hover-bg: rgba(0, 0, 0, 0.06);
+    --gallery-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+    --gallery-toolbar-bg: rgba(255, 255, 255, 0.96);
+    --gallery-scroll-thumb: rgba(0, 0, 0, 0.28);
+}
+
+.gallery-theme.gallery-theme-dark {
+    color-scheme: dark;
+    --gallery-bg: #141414;
+    --gallery-bg-elevated: #1f1f1f;
+    --gallery-bg-sunken: #111111;
+    --gallery-border: #303030;
+    --gallery-border-strong: #424242;
+    --gallery-text: rgba(255, 255, 255, 0.88);
+    --gallery-text-secondary: rgba(255, 255, 255, 0.55);
+    --gallery-card-bg: #1a1a1a;
+    --gallery-hover-bg: rgba(255, 255, 255, 0.09);
+    --gallery-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+    --gallery-toolbar-bg: rgba(31, 31, 31, 0.96);
+    --gallery-scroll-thumb: rgba(255, 255, 255, 0.26);
+}
+
+.gallery-theme ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.gallery-theme ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.gallery-theme ::-webkit-scrollbar-thumb {
+    background: var(--gallery-scroll-thumb);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.gallery-theme ::-webkit-scrollbar-thumb:hover {
+    background: var(--gallery-accent);
+    background-clip: content-box;
+}
+
+.gallery-grid-root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: var(--gallery-bg-sunken);
+}
+
+.gallery-grid-root .grid-element {
+    background: var(--gallery-bg-sunken);
+}
+
+.image-card {
+    background: var(--gallery-card-bg);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.image-card:hover {
+    box-shadow: var(--gallery-shadow);
+}
+
+.image-card.gallery-card-selected {
+    box-shadow: 0 0 0 3px var(--gallery-accent), var(--gallery-shadow);
+}
+
+.gallery-card-selected-check {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 4;
+    color: var(--gallery-accent);
+    background: var(--gallery-bg-elevated);
+    border-radius: 50%;
+    line-height: 0;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+
+.gallery-card-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    pointer-events: none;
+}
+
+.image-card:hover .gallery-card-delete,
+.image-card:focus-within .gallery-card-delete,
+.gallery-card-delete:focus-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.gallery-card-delete .ant-btn {
+    background: rgba(0, 0, 0, 0.55);
+    border-color: transparent;
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+.gallery-card-delete .ant-btn:hover {
+    background: #ff4d4f !important;
+    color: #fff !important;
+}
+
+.gallery-card-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 10px 10px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.28) 65%, transparent);
+}
+
+.gallery-card-title {
+    margin: 0 !important;
+    color: #fff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.gallery-card-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 56px;
+    pointer-events: none;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+}
+
+.image-card:hover .gallery-card-play {
+    opacity: 0;
+}
+
+.gallery-marquee {
+    position: absolute;
+    z-index: 30;
+    border: 1px solid var(--gallery-accent);
+    background: var(--gallery-marquee-bg);
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(24, 144, 255, 0.25) inset;
+}
+
+.gallery-selection-toolbar {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--gallery-toolbar-bg);
+    border: 1px solid var(--gallery-border-strong);
+    box-shadow: var(--gallery-shadow);
+    backdrop-filter: blur(10px);
+    max-width: calc(100% - 32px);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.gallery-selection-count {
+    font-weight: 600;
+    color: var(--gallery-text);
+    padding: 0 6px;
+    white-space: nowrap;
+}
+
+.gallery-loading-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gallery-overlay-bg);
+}
+
+.gallery-thumb-placeholder {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: linear-gradient(100deg, var(--gallery-card-bg) 20%, var(--gallery-hover-bg) 40%, var(--gallery-card-bg) 60%);
+    background-size: 200% 100%;
+    animation: gallery-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes gallery-shimmer {
+    0% {
+        background-position: 120% 0;
+    }
+
+    100% {
+        background-position: -80% 0;
+    }
+}
+
+.gallery-date-divider-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.gallery-date-divider-label::before,
+.gallery-date-divider-label::after {
+    content: '';
+    flex: 1;
+    border-bottom: 2px solid var(--gallery-border-strong);
+}
+
+.gallery-date-divider-text {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--gallery-text-secondary);
+    background: var(--gallery-bg-sunken);
+    border: 1px solid var(--gallery-border);
+    border-radius: 8px;
+    padding: 2px 20px;
+    line-height: 30px;
+    white-space: nowrap;
+}
+
+.gallery-folder-title {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+}
+
+.gallery-folder-title.gallery-folder-selected {
+    background: var(--gallery-selection-bg);
+    border-color: var(--gallery-accent);
+}
+
+.gallery-perf-table {
+    font-variant-numeric: tabular-nums;
+}
+
+.gallery-perf-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--gallery-border);
+    font-size: 12px;
+}
+
+.gallery-perf-row:last-child {
+    border-bottom: 0;
+}
+
+.gallery-perf-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-perf-detail {
+    color: var(--gallery-text-secondary);
+    font-size: 11px;
+}
+
+.gallery-perf-value {
+    font-weight: 600;
+    color: var(--gallery-accent);
+    white-space: nowrap;
+}
+
+/* The antd modal sits outside the wrapper div, so theme the portal via rootClassName. */
+.gallery-modal-root .ant-modal-content {
+    padding: 16px;
+}
+
+.gallery-modal-root .ant-modal-body {
+    padding: 0;
+}
+
+.gallery-modal-root .ant-modal-header {
+    margin-bottom: 12px;
+}
+
+.gallery-modal-root .ant-modal-title {
+    width: 100%;
+}
+
+.gallery-settings-modal-root .ant-modal-body {
+    max-height: 68vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}

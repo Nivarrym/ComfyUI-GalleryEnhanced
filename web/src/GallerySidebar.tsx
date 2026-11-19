@@ -58,7 +58,7 @@ const foldersToTreeData = (data: FilesTree): TreeDataNode[] => {
 };
 
 // Memoize FolderTitle to avoid unnecessary re-renders
-const FolderTitle = memo(({ nodeData, currentFolder }: { nodeData: any, currentFolder: string }) => {
+const FolderTitle = memo(({ nodeData }: { nodeData: any }) => {
     const folderRef = useRef<HTMLDivElement>(null);
     const { data, selectedImages, setSelectedImages } = useGalleryContext();
 
@@ -74,16 +74,14 @@ const FolderTitle = memo(({ nodeData, currentFolder }: { nodeData: any, currentF
     const allSelected = folderImages.length > 0 && folderImages.every(url => selectedImages.includes(url));
 
     // Handle click: ctrl/cmd toggles all images in folder
-    const handleCardClick = (event: React.MouseEvent, folder: string) => {
+    const handleCardClick = (event: React.MouseEvent) => {
         if (event.ctrlKey || event.metaKey) {
             event.stopPropagation();
             event.preventDefault();
             setSelectedImages((oldSelectedImages) => {
                 if (allSelected) {
-                    // Remove all folder images
                     return oldSelectedImages.filter(url => !folderImages.includes(url));
                 } else {
-                    // Add all folder images (avoid duplicates)
                     return Array.from(new Set([...oldSelectedImages, ...folderImages]));
                 }
             });
@@ -93,7 +91,7 @@ const FolderTitle = memo(({ nodeData, currentFolder }: { nodeData: any, currentF
     };
 
     useDrop(folderRef, {
-        onDom: (content: any, e: any) => {
+        onDom: (content: any) => {
             try {
                 // Accept drag data from ImageCard (should be JSON string with name, folder, etc)
                 const dragData = typeof content === 'string' ? JSON.parse(content) : content;
@@ -103,11 +101,8 @@ const FolderTitle = memo(({ nodeData, currentFolder }: { nodeData: any, currentF
                     const sourcePath = `${dragData.folder}/${dragData.name}`;
                     const targetPath = `${nodeData.key}/${dragData.name}`;
                     ComfyAppApi.moveImage(sourcePath, targetPath).then(success => {
-                        if (success) {
-                            // Optionally: show a message or refresh UI
-                            // message.success('Image moved');
-                        } else {
-                            // message.error('Failed to move image');
+                        if (!success) {
+                            console.warn('Failed to move image', sourcePath, targetPath);
                         }
                     });
                 }
@@ -119,32 +114,16 @@ const FolderTitle = memo(({ nodeData, currentFolder }: { nodeData: any, currentF
     return (
         <span
             ref={folderRef}
-            className={`folder ${allSelected ? 'folder-selected' : ''}`}
-            style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '2px 6px',
-                borderRadius: 4,
-                transition: 'background 0.2s',
-                cursor: 'pointer',
-                background: allSelected ? 'rgba(24, 144, 255, 0.15)' : undefined,
-                border: allSelected ? '1.5px solid #1890ff' : undefined,
-            }}
-            onClick={(event) => handleCardClick(event, nodeData.title)}
+            className={`folder gallery-folder-title${allSelected ? ' gallery-folder-selected' : ''}`}
+            onClick={handleCardClick}
         >
             <span style={{ marginLeft: 0 }}>{nodeData.title}</span>
-            <style>{`
-                .folder-selected {
-                    background: rgba(24, 144, 255, 0.15) !important;
-                    border: 1.5px solid #1890ff !important;
-                }
-            `}</style>
         </span>
     );
 });
 
 const GallerySidebar = () => {
-    const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings } = useGalleryContext();
+    const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings, clearSelection } = useGalleryContext();
     // Only recalculate treeData if folder structure actually changes
     const treeData = useMemo(() => {
         if (loading || !data) return [];
@@ -164,10 +143,10 @@ const GallerySidebar = () => {
 
     // Track if an image is being dragged
     useEffect(() => {
-        const onDragStart = (e: DragEvent) => {
+        const onDragStart = () => {
             setShowClose(true);
         };
-        const onDragEnd = (e: DragEvent) => {
+        const onDragEnd = () => {
             setShowClose(false);
             setTargetDate(undefined);
         };
@@ -181,44 +160,26 @@ const GallerySidebar = () => {
 
     // Use FolderTitle component for each folder node (remove icon from here)
     const renderTreeTitle = useCallback((nodeData: any) => (
-        <FolderTitle             
-            nodeData={nodeData} 
-            currentFolder={currentFolder} 
-        />
-    ), [currentFolder]);
+        <FolderTitle nodeData={nodeData} />
+    ), []);
 
     // Memoize onSelect handler for performance
     const handleTreeSelect = useCallback((keys: React.Key[]) => {
-        if (keys.length > 0) setCurrentFolder(keys[0] as string);
-        
-    }, [setCurrentFolder]);
+        if (keys.length > 0) {
+            setCurrentFolder(keys[0] as string);
+            clearSelection();
+        }
+    }, [setCurrentFolder, clearSelection]);
 
     if (siderCollapsed) return (<></>);
 
     return (
         <div className="gallery-sidebar" style={{ position: 'relative', height: '100%' }}>
             {loading && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'rgba(30,30,30,0.5)',
-                    zIndex: 100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
+                <div className="gallery-loading-mask">
                     <Spin size="large" tip="Loading..." />
                 </div>
             )}
-            <style>{`
-                .gallery-sidebar-tree-box > * {
-                    height: auto;
-                    min-height: -webkit-fill-available;
-                }
-            `}</style>
             <div
                 className="gallery-sidebar-tree-box"
                 style={{

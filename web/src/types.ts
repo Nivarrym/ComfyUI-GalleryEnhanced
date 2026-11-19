@@ -20,6 +20,12 @@ export interface FileDetails {
     type: "image" | "media" | "audio" | "3d" | "divider" | "empty-space";
 }
 
+/** True when an asset has real metadata (lazy loading returns `{}` initially). */
+export function hasMetadata(image?: { metadata?: unknown } | null): boolean {
+    const metadata = image?.metadata;
+    return !!metadata && typeof metadata === 'object' && Object.keys(metadata as Record<string, unknown>).length > 0;
+}
+
 export interface FolderContent {
     [filename: string]: FileDetails;
 }

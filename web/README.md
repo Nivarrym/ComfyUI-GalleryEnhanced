@@ -22,7 +22,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Move Files (v1.5.0, React version in v2.0.0):** Drag and drop images between folders directly within the gallery to reorganize your output.
 *   **Delete Files (v1.5.0, React version in v2.0.0):** Delete unwanted images directly from the gallery with a confirmation prompt.
 *   **Download Files (v1.5.0, React version in v2.0.0):** Download individual images with a single click from the info view, using the original filename.
-*   **Batch Download (v2.0.0):** Select multiple images by holding Ctrl (or Cmd on Mac) and clicking on them, then click the "Download Selected" button in the header to download all selected images at once as a ZIP file.
+*   **Batch Download (v2.0.0):** Select multiple images with Ctrl/Cmd+click, Shift+click for a range, or box-drag, then use the floating selection toolbar's Download button to save them as a ZIP file.
 *   **Asynchronous Image Loading (v1.5.0, significantly enhanced in v2.0.0):** Images load asynchronously for a faster gallery startup and smoother browsing experience, utilizing a virtualized grid for performance.
 *   **Improved UI (v2.0.0):** Complete rewrite with React for a modern, high-performance user interface.
 *   **Customizable Settings:** Tailor the gallery with a dedicated settings panel:
@@ -77,7 +77,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Move Images:** Click and drag an image card and drop it onto a folder in the left-hand navigation panel.
 *   **Delete Image:** Click on "Info" for an image, then click on the "Delete" button in the info view, and confirm the deletion.
 *   **Download Image:** Click on "Info" for an image, and in the image preview, click the "Download" icon button.
-*   **Batch Download:** Hold Ctrl (or Cmd on Mac) and click multiple image cards to select them. Then click the "Download Selected" button in the gallery header to download all selected images as a ZIP file.
+*   **Batch Download:** Hold Ctrl (or Cmd on Mac) and click multiple image cards, Shift+click for a range, or drag a box over the grid. Then use the floating selection toolbar to download all selected images as a ZIP file.
 *   **Access Settings:** Click the "Settings" button in the gallery popup header.
 *   **Toggle Sidebar:** Use the sidebar toggle button (◀ or ▶) in the gallery header to collapse or expand the navigation panel.
 *   **Switch Theme:** Open Settings and toggle Dark/Light mode.

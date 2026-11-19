@@ -4,33 +4,34 @@ import time
 import threading
 from watchdog.observers import Observer
 from watchdog.observers.polling import PollingObserver
-from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
-from .folder_scanner import _scan_for_images  # Import folder scanner
-import asyncio
-from server import PromptServer
-import queue
+from watchdog.events import PatternMatchingEventHandler
+from . import scan_service  # single-flight / TTL scan cache
 from .gallery_config import gallery_log
 
 
 class GalleryEventHandler(PatternMatchingEventHandler):
     """Handles file system events, including symlinks, recursively."""
 
-    def __init__(self, base_path, patterns=None, ignore_patterns=None, ignore_directories=False, case_sensitive=True, debounce_interval=0.5, extensions=None, deduplicate_symlinks=True):
-        super().__init__(patterns=patterns, ignore_patterns=ignore_patterns, ignore_directories=ignore_directories, case_sensitive=case_sensitive)
+    def __init__(self, base_path, patterns=None, ignore_patterns=None,
+                 ignore_directories=False, case_sensitive=True,
+                 debounce_interval=0.5, extensions=None, deduplicate_symlinks=True):
+        super().__init__(patterns=patterns, ignore_patterns=ignore_patterns,
+                         ignore_directories=ignore_directories,
+                         case_sensitive=case_sensitive)
         self.base_path = os.path.realpath(base_path)  # Use realpath for base_path
         self.debounce_timer = None
         self.debounce_interval = debounce_interval
-        # Use a dictionary to track events, keyed by (event_type, real_path)
         self.processed_events = {}
-        self.result_queue = queue.Queue()  # Queue for results.
-        self.running_scan = False # Flag to avoid multiple scans at the same time
         self.extensions = extensions
         self.deduplicate_symlinks = deduplicate_symlinks
-        self.last_known_folders = {} # Ensure last_known_folders is initialized empty
+        self.last_known_folders = {}
+        self._scan_lock = threading.Lock()
+        self._pending_rescan = False
+        self._stopped = threading.Event()
 
     def on_any_event(self, event):
         """Handles events, including symlinks, with debouncing and duplicate prevention."""
-        if event.is_directory:
+        if self._stopped.is_set() or event.is_directory:
             return
 
         # Ignore temporary files
@@ -43,106 +44,104 @@ class GalleryEventHandler(PatternMatchingEventHandler):
         event_key = (event.event_type, real_path)
         current_time = time.time()
 
-        if event_key in self.processed_events:
-            last_processed_time = self.processed_events[event_key]
-            if current_time - last_processed_time < self.debounce_interval:
-                return
+        last_processed_time = self.processed_events.get(event_key)
+        if last_processed_time is not None and current_time - last_processed_time < self.debounce_interval:
+            return
 
-        # Mark this event as processed
+        # Mark this event as processed; occasionally prune the dictionary so a
+        # long-running server does not accumulate one entry per file forever.
         self.processed_events[event_key] = current_time
-
+        if len(self.processed_events) > 2048:
+            cutoff = current_time - 60.0
+            self.processed_events = {
+                key: value for key, value in self.processed_events.items() if value >= cutoff
+            }
 
         if event.event_type in ('created', 'deleted', 'modified', 'moved'):
             gallery_log(f"Watchdog detected {event.event_type}: {event.src_path} (Real path: {real_path}) - debouncing")
             self.debounce_event()
 
-
     def debounce_event(self):
         """Debounces the file system event."""
+        if self._stopped.is_set():
+            return
         if self.debounce_timer and self.debounce_timer.is_alive():
             self.debounce_timer.cancel()
 
         self.debounce_timer = threading.Timer(self.debounce_interval, self.rescan_and_send_changes)
+        self.debounce_timer.daemon = True
         self.debounce_timer.start()
 
+    def cancel(self):
+        self._stopped.set()
+        if self.debounce_timer and self.debounce_timer.is_alive():
+            self.debounce_timer.cancel()
+            self.debounce_timer = None
+
     def rescan_and_send_changes(self):
-        """Rescans, detects changes, sends updates, now thread-safe."""
-        if self.running_scan:
-            gallery_log("Another scan is running, skipping")
+        """Rescan without metadata, diff against the last baseline, notify clients.
+
+        Runs in the debounce timer thread.  If another scan is already running the
+        rescan is coalesced into one follow-up instead of overlapping.
+        """
+        if self._stopped.is_set():
+            return
+        if not self._scan_lock.acquire(blocking=False):
+            self._pending_rescan = True
             return
 
-        self.running_scan = True  # Set the flag.
+        try:
+            # Files changed: the shared scan cache is stale, force a fresh scan.
+            scan_service.invalidate(self.base_path)
+            new_folders_data, _info = scan_service.get_scan(
+                self.base_path,
+                os.path.basename(self.base_path),
+                self.extensions,
+                self.deduplicate_symlinks,
+                extract_metadata=False,
+            )
+            old_folders_data = self.last_known_folders
+            changes = detect_folder_changes(old_folders_data, new_folders_data)
 
-        def thread_target():
-            """Target function for the scanning thread."""
-
-            try:
-                folder_name = os.path.basename(self.base_path)
-                # Pass configured extensions to the scanner
-                new_folders_data, _ = _scan_for_images(self.base_path, folder_name, True, self.extensions, self.deduplicate_symlinks)
-                old_folders_data = self.last_known_folders
-                changes = detect_folder_changes(old_folders_data, new_folders_data)
-
-                # Put results and last_known_folders into the queue.
-                self.result_queue.put((changes, new_folders_data))
-
-
-            except Exception as e:
-                # Put any exception into the queue for the main thread to handle.
-                self.result_queue.put(e)
-
-
-        def on_scan_complete():
-            """Callback to run in the main thread after scanning."""
-            try:
-
-                result = self.result_queue.get()  # Use get - BLOCKING
-
-                if isinstance(result, Exception):
-                    gallery_log(f"FileSystemMonitor: Error during scan: {result}")
-                    return
-
-                changes, new_folders_data = result
-
-                if changes:
-                    gallery_log("FileSystemMonitor: Changes detected after debounce, sending updates")
+            if changes and changes.get("folders"):
+                gallery_log("FileSystemMonitor: Changes detected after debounce, sending updates")
+                try:
                     from .server import sanitize_json_data
-                    # Correctly schedule the send_sync call on the main thread.
-                    PromptServer.instance.send_sync("Gallery.file_change", sanitize_json_data(changes)) # NO ASYNCIO NEEDED
-                else:
-                    gallery_log("FileSystemMonitor: Changes detected by watchdog, but no relevant gallery changes after debounce.")
+                    from server import PromptServer
 
-                self.last_known_folders = new_folders_data  # Update last_known_folders.
-                self.debounce_timer = None
-            except queue.Empty:
-                gallery_log("FileSystemMonitor: Queue is empty, this shouldn't happen normally.")
+                    PromptServer.instance.send_sync("Gallery.file_change", sanitize_json_data(changes))
+                except Exception as exc:  # pragma: no cover - depends on live ComfyUI
+                    gallery_log(f"FileSystemMonitor: Unable to send file_change event: {exc}")
+            else:
+                gallery_log("FileSystemMonitor: Watchdog event(s) produced no relevant gallery changes.")
 
-            finally:
-                self.running_scan = False #Clear flag in all cases
-
-        # Start the scan in a separate thread.
-        scan_thread = threading.Thread(target=thread_target)
-        scan_thread.start()
-
-        #Schedule the callback to be called when the scan is complete.
-        scan_thread.join() # Wait for the scan thread to actually complete!
-        on_scan_complete() # THEN call the completion function, now guaranteed to have data.
-
+            self.last_known_folders = new_folders_data
+        except Exception as e:
+            gallery_log(f"FileSystemMonitor: Error during scan: {e}")
+        finally:
+            self._scan_lock.release()
+            if self._pending_rescan and not self._stopped.is_set():
+                self._pending_rescan = False
+                self.debounce_event()
 
 
 class FileSystemMonitor:
     """Monitors the output directory, including symlinks, recursively."""
 
-    def __init__(self, base_path, interval=1.0, use_polling_observer=False, extensions=None, deduplicate_symlinks=True):
+    def __init__(self, base_path, interval=1.0, use_polling_observer=False,
+                 extensions=None, deduplicate_symlinks=True):
         self.base_path = base_path
         self.interval = interval
         self.use_polling_observer = use_polling_observer
         self.extensions = extensions
         self.deduplicate_symlinks = deduplicate_symlinks
+
+        # NOTE: these used to be swapped (polling flag produced a native Observer
+        # and vice versa).  Native observer by default, polling when requested.
         if use_polling_observer:
-            self.observer = Observer()
+            self.observer = PollingObserver(timeout=interval)
         else:
-            self.observer = PollingObserver()
+            self.observer = Observer(timeout=interval)
 
         # Generate patterns from extensions if provided
         if self.extensions:
@@ -150,52 +149,102 @@ class FileSystemMonitor:
         else:
             patterns = ["*"]
 
-        self.event_handler = GalleryEventHandler(base_path=base_path, patterns=patterns, debounce_interval=0.5, extensions=self.extensions, deduplicate_symlinks=self.deduplicate_symlinks)
+        self.event_handler = GalleryEventHandler(
+            base_path=base_path,
+            patterns=patterns,
+            debounce_interval=0.5,
+            extensions=self.extensions,
+            deduplicate_symlinks=self.deduplicate_symlinks,
+        )
 
-        # Do NOT perform a blocking scan in __init__ to avoid startup freeze.
-        # Initial scan will be performed in the observer thread.
+        # Never perform a blocking scan in __init__/start_monitoring(); the
+        # initial baseline scan runs on the background monitor thread and is
+        # shared with /Gallery/images through scan_service.
         self.thread = None
+        self._stop_event = threading.Event()
 
     def start_monitoring(self):
-        """Starts the Watchdog observer."""
+        """Starts the Watchdog observer.  Returns immediately."""
         if self.thread is None or not self.thread.is_alive():
+            self._stop_event.clear()
             self.thread = threading.Thread(target=self._start_observer_thread, daemon=True)
             self.thread.start()
             gallery_log("FileSystemMonitor: Watchdog monitoring thread started.")
         else:
             gallery_log("FileSystemMonitor: Watchdog monitoring thread already running.")
 
-    def _start_observer_thread(self):
-        # Perform an initial background scan before scheduling the observer
+    def _initial_scan(self):
+        """Populate the baseline from the shared scan cache (single-flight)."""
         try:
-            folder_name = os.path.basename(self.base_path)
             gallery_log("FileSystemMonitor: Starting initial background scan...")
-            initial_data, _ = _scan_for_images(self.base_path, folder_name, True, self.extensions, self.deduplicate_symlinks)
-            self.event_handler.last_known_folders = initial_data
-            gallery_log("FileSystemMonitor: Initial background scan complete.")
+            started = time.perf_counter()
+            initial_data, info = scan_service.get_scan(
+                self.base_path,
+                os.path.basename(self.base_path),
+                self.extensions,
+                self.deduplicate_symlinks,
+                extract_metadata=False,
+            )
+            with self.event_handler._scan_lock:
+                self.event_handler.last_known_folders = initial_data
+            gallery_log(
+                "FileSystemMonitor: Initial background scan complete "
+                f"({info.get('files', 0)} files, {info.get('duration_ms', 0.0):.1f} ms, "
+                f"cache={'hit' if info.get('cache_hit') else 'miss'}, "
+                f"total={((time.perf_counter() - started) * 1000.0):.1f} ms)."
+            )
         except Exception as e:
             gallery_log(f"FileSystemMonitor: Error during initial scan: {e}")
 
-        self.observer.schedule(self.event_handler, self.base_path, recursive=True)
-        self.observer.follow_directory_symlinks = True  # Ensure symlinks are followed
-        self.observer.start()
+    def _start_observer_thread(self):
         try:
-            while True:
-                time.sleep(0.1)
+            self.observer.schedule(self.event_handler, self.base_path, recursive=True)
+            self.observer.follow_directory_symlinks = True  # Ensure symlinks are followed
+            self.observer.start()
+        except Exception as e:
+            gallery_log(f"FileSystemMonitor: Unable to start watchdog observer: {e}")
+            return
+
+        try:
+            # Baseline after the observer is running so no change is missed.  The
+            # scan is shared with a concurrent /Gallery/images request.
+            if not self._stop_event.is_set():
+                self._initial_scan()
+
+            while not self._stop_event.wait(0.2):
+                pass
         except KeyboardInterrupt:
             self.stop_monitoring()
+        finally:
+            # Handles stop() racing with the startup sequence: stop_monitoring()
+            # may have run before the observer was started.
+            try:
+                if self.observer.is_alive():
+                    self.observer.stop()
+            except Exception:
+                pass
 
     def stop_monitoring(self):
         """Stops the Watchdog observer."""
-        if self.thread and self.thread.is_alive():
-            self.observer.stop()
+        self._stop_event.set()
+        self.event_handler.cancel()
+        stopped = False
+        try:
             if self.observer.is_alive():
-                self.observer.join()
-            self.thread = None
+                self.observer.stop()
+                self.observer.join(timeout=5.0)
+                stopped = True
+        except Exception as e:
+            gallery_log(f"FileSystemMonitor: Error stopping watchdog observer: {e}")
+
+        thread = self.thread
+        if thread and thread.is_alive():
+            thread.join(timeout=5.0)
+        self.thread = None
+        if stopped:
             gallery_log("FileSystemMonitor: Watchdog monitoring thread stopped.")
         else:
             gallery_log("FileSystemMonitor: Watchdog monitoring thread was not running.")
-
 
 
 # --- Helper function to detect folder changes ---
@@ -217,11 +266,11 @@ def detect_folder_changes(old_folders, new_folders):
             old_file_data = old_folder.get(filename)
             new_file_data = new_folder.get(filename)
 
-            if filename not in old_folder: # New file
+            if filename not in old_folder:  # New file
                 folder_changes[filename] = {"action": "create", **new_file_data}
-            elif filename not in new_folder: # Removed file
+            elif filename not in new_folder:  # Removed file
                 folder_changes[filename] = {"action": "remove"}
-            elif old_file_data != new_file_data: # Updated file (simplistic comparison)
+            elif old_file_data != new_file_data:  # Updated file (simplistic comparison)
                 folder_changes[filename] = {"action": "update", **new_file_data}
 
         if folder_changes:

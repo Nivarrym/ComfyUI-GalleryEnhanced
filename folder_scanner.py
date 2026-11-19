@@ -1,5 +1,6 @@
 # folder_scanner.py
 import os
+import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .metadata_extractor import buildMetadata  # Import metadata extractor
@@ -35,8 +36,23 @@ def _extract_metadata_safe(full_path):
         print(f"Gallery Node: Error building metadata for {full_path}: {e}")
         return (full_path, {})
 
-def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_extensions=None, deduplicate_symlinks=True):
-    """Scans directories for files matching allowed extensions."""
+def _scan_for_images(
+    full_base_path,
+    base_path,
+    include_subfolders,
+    allowed_extensions=None,
+    deduplicate_symlinks=True,
+    extract_metadata=True,
+    timing=None,
+):
+    """Scans directories for files matching allowed extensions.
+
+    ``extract_metadata=False`` skips all Pillow work (the slow phase): every
+    asset gets ``"metadata": {}`` and the listing can be produced from directory
+    entries + stat calls only.  The default stays ``True`` for compatibility.
+
+    ``timing`` is an optional dict filled with ``metadata_ms``.
+    """
     if allowed_extensions is None:
         allowed_extensions = DEFAULT_EXTENSIONS
 
@@ -113,8 +129,9 @@ def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_exte
                             "type": file_type
                         }
 
-                        # Queue metadata extraction for images (the slow part)
-                        if file_type == "image":
+                        # Queue metadata extraction for images (the slow part),
+                        # unless the caller explicitly wants a lightweight scan.
+                        if extract_metadata and file_type == "image":
                             folder_key = os.path.join(base_path, relative_path).replace("\\", "/") if relative_path else base_path
                             metadata_tasks.append((folder_key, entry_name, full_path))
 
@@ -132,7 +149,10 @@ def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_exte
     scan_directory(full_base_path, "")
 
     # Phase 2: Parallel metadata extraction for image files
+    if timing is not None:
+        timing.setdefault("metadata_ms", 0.0)
     if metadata_tasks:
+        metadata_started = time.perf_counter()
         with ThreadPoolExecutor(max_workers=_METADATA_WORKERS) as executor:
             future_to_key = {
                 executor.submit(_extract_metadata_safe, full_path): (folder_key, filename)
@@ -146,5 +166,7 @@ def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_exte
                         folders_data[folder_key][filename]["metadata"] = metadata
                 except Exception as e:
                     print(f"Gallery Node: Error in metadata thread for {filename}: {e}")
+        if timing is not None:
+            timing["metadata_ms"] = (time.perf_counter() - metadata_started) * 1000.0
 
     return folders_data, changed

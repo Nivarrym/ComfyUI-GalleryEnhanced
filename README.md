@@ -8,6 +8,11 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 
 > **Visualize your creative output directly in ComfyUI, unlock image metadata, and manage your files with ease!**
 
+> **This is a fork of [PanicTitan/ComfyUI-Gallery](https://github.com/PanicTitan/ComfyUI-Gallery).**
+> It adds Shift/Ctrl/box selection, batch delete, per-card delete, a complete
+> dark theme, and a reworked lazy/thumbnail performance path. See
+> [FORK_CHANGES.md](FORK_CHANGES.md) for the full list and API additions.
+
 ## Key Features:
 
 *   **Real-time Gallery Updates:** Leveraging ComfyUI's event system, the gallery instantly reflects new images, videos, and GIFs saved to your ComfyUI output folder and no manual refresh needed!
@@ -23,8 +28,10 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Move Files (v1.5.0, React version in v2.0.0):** Drag and drop images between folders directly within the gallery to reorganize your output.
 *   **Delete Files (v1.5.0, React version in v2.0.0):** Delete unwanted images directly from the gallery with a confirmation prompt.
 *   **Download Files (v1.5.0, React version in v2.0.0):** Download individual images with a single click from the info view, using the original filename.
-*   **Batch Download (v2.0.0):** Select multiple images by holding Ctrl (or Cmd on Mac) and clicking on them, then click the "Download Selected" button in the header to download all selected images at once as a ZIP file.
-*   **Batch Delete (v2.3.0):** Select multiple images (or entire folders) by holding Ctrl (or Cmd on Mac) and clicking, then click the "Delete Selected" button in the header to delete all selected images at once, with confirmation and progress feedback.
+*   **Batch Download (v2.0.0):** Select multiple images with Ctrl/Cmd+click, Shift+click for a range, or drag a box over the grid, then download all selected images at once as a ZIP file.
+*   **Batch Delete (v2.3.0, improved in v2.8.0):** Select multiple images (or entire folders) and delete them in one request with confirmation and per-file error feedback. `Delete`/`Backspace` triggers the same action.
+*   **Fast Selection (v2.8.0):** Shift-click range selection, box-drag selection with Ctrl/Cmd to add, Ctrl/Cmd+A select all, Esc clear.
+*   **Quick Delete (v2.8.0):** A trash button appears in the corner of each card on hover.
 *   **Select Entire Folder (v2.3.0):** Ctrl/Cmd+Click a folder in the sidebar to select or deselect all images in that folder for batch operations (download/delete). Visual highlight indicates full-folder selection.
 *   **Improved Batch Download (v2.3.0):** Download all selected images (including from multiple folders) as a ZIP file. 
     *   ⚠️ **Browser Limitation:** Batch download is performed client-side using JavaScript. Downloading very large folders or thousands of images may be limited by your browser's memory and performance. For best results, select a reasonable number of images at a time.
@@ -113,6 +120,14 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.8.0 (fork):**
+    *   **Selection:** Shift-click ranges, box-drag selection (Ctrl/Cmd additive), Ctrl/Cmd+A, Esc clears, Delete/Backspace deletes selected.
+    *   **Batch delete:** One request for all selected assets, optimistic UI updates and per-file failures. Per-card trash button on hover.
+    *   **Dark theme:** Complete token/CSS-variable theme across modal, sidebar, grid, cards, settings, metadata, JSON view and scrollbars.
+    *   **Performance:** Lightweight listing without metadata, lazy `/Gallery/metadata`, cached WebP `/Gallery/thumbnail`, single-flight scan cache, non-blocking `asyncio.to_thread` scanning, fixed watchdog observer, closed Pillow handles, compact date-divider rows.
+    *   **Diagnostics:** Client/server performance timeline, `/Gallery/perf`, paged thumbnail queue (6 concurrent), `debugPerf` setting and `?galleryPerf=1`.
+    *   **Videos:** `preload="metadata"` and play on hover instead of autoplaying every visible video.
 
 *   **v2.7.1:**
     *   **Performance Improvement:** Changes in how the folders are parsed to improve gallery loading times for folders with many images.

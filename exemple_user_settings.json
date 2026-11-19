@@ -15,5 +15,6 @@
     "scanExtensions": null,
     "imageThumbFit": null,
     "videoThumbFit": null,
-    "deduplicateSymlinks": null
+    "deduplicateSymlinks": null,
+    "debugPerf": null
 }

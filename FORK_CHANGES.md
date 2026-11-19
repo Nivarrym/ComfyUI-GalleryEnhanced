@@ -1,0 +1,118 @@
+# Fork changes — ComfyUI Gallery (multi-select, dark theme, fast lazy previews)
+
+This repository is a fork of
+[PanicTitan/ComfyUI-Gallery](https://github.com/PanicTitan/ComfyUI-Gallery) 2.7.1.
+Upstream is tracked as the `upstream` git remote; the initial commit in this fork
+is the unmodified 2.7.1 import.
+
+## New features
+
+### Selection and batch operations
+
+- **Ctrl/Cmd+click** toggles one asset; **Shift+click** selects the range between
+  the anchor and the clicked asset (dividers are skipped).
+- **Box-drag select** on the empty grid background: drag a marquee over cards.
+  Hold Ctrl/Cmd while dragging to add to the existing selection. The marquee
+  auto-scrolls the virtualized grid near the edges.
+- **Ctrl/Cmd+A** selects all visible/filtered assets, **Esc** clears the
+  selection, **Delete/Backspace** deletes the selected assets.
+- **Floating selection toolbar** shows the count, Select all, ZIP download, batch
+  delete and Clear.
+- **Batch delete** is one `POST /Gallery/delete` request (`image_paths`) instead
+  of N sequential requests; per-file failures are reported and successful
+  deletions are removed from the grid optimistically.
+- **Per-card trash button** appears in the top-right corner on hover/focus and
+  deletes that one asset after a compact confirmation.
+
+### Dark theme
+
+- The whole gallery now follows `darkMode`: modal, header, sidebar/tree, grid,
+  cards, selection toolbar, settings, performance panel, metadata view, raw JSON
+  viewer and scrollbars.
+- Ant Design tokens and CSS variables are used instead of hard-coded colours;
+  light mode remains the default and is unchanged visually.
+
+### Performance and diagnostics
+
+- `/Gallery/images` no longer opens every image. It performs a directory walk +
+  `stat` only, runs off the aiohttp event loop (`asyncio.to_thread`), and is
+  backed by a single-flight + TTL scan cache. Concurrent startup requests
+  (`/Gallery/images` and the monitor's initial scan) share one real scan.
+- **Lazy metadata**: `GET /Gallery/metadata?path=...` extracts one asset's
+  metadata on demand and caches it by `realpath + mtime + size`. Opening the
+  info view no longer requires metadata for the whole folder.
+- **Server-side thumbnails**: `GET /Gallery/thumbnail?path=...&w=400` returns
+  cached WebP previews (Pillow, EXIF orientation baked in, atomic disk cache).
+  The grid never downloads full-resolution originals; the original is loaded
+  only when the preview opens.
+- **Paged preview loading** on the client: a queue with 6 concurrent requests,
+  object-URL cache, fallback to the original on error, and virtualized mounting
+  from `react-window`.
+- **Video loading**: videos are no longer all autoplayed; `preload="metadata"` +
+  play on hover (setting `autoPlayVideos` still controls it).
+- **Performance report** (bug icon in the header, or Settings → Performance):
+  client timeline (bootstrap, settings, listing, first paint, thumbnail paging),
+  server timings from `/Gallery/perf`, scan cache hit/miss and thumbnail stats.
+  Enable verbose `[GalleryPerf]` logs with Settings → Debug Performance
+  (`debugPerf`), or force with `?galleryPerf=1`.
+- Fixed the watchdog observer inversion (`usePollingObserver` now actually uses
+  `PollingObserver`), removed blocking joins from the scan path, and closed
+  Pillow file handles that used to leak on every scan.
+- Date-divider rows are now 56 px instead of a full card row, so the grid shows
+  many more assets per screen.
+
+## API additions
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /Gallery/images` | Lightweight listing (metadata is `{}`); headers `X-Gallery-Scan-Ms`, `X-Gallery-Scan-Cache`, `X-Gallery-File-Count`, `X-Gallery-Metadata-Ms` |
+| `GET /Gallery/metadata?path=...` | `{metadata, cached}` for one asset |
+| `GET /Gallery/thumbnail?path=...&w=...` | Cached WebP thumbnail (`X-Gallery-Thumb-Cache`) |
+| `POST /Gallery/delete` | `{image_path}` (legacy) or `{image_paths: [...]}`; returns `{deleted, failed, count}` |
+| `GET /Gallery/perf` | Recent server phase timings + aggregate scan/thumbnail stats |
+| `DELETE /Gallery/perf` | Reset those records |
+
+All paths still use the `/static_gallery/...` form and are validated against the
+real static root (realpath containment, no `..`, no absolute escapes).
+
+## Settings
+
+- `debugPerf` (default `false`) — verbose client/server performance logging.
+- `autoPlayVideos` now means “play videos on hover” (the grid never autoplays
+  every visible video at once).
+- Everything else is backward compatible with upstream `user_settings.json`.
+
+## Build
+
+```powershell
+cd web
+npm install
+npm run build
+```
+
+The build writes `web/dist/assets/comfy-ui-gallery.js`, which is tracked because
+ComfyUI loads `WEB_DIRECTORY = ./web/dist/assets` directly.
+
+## Tests
+
+Backend (stdlib `unittest`, uses the ComfyUI Python environment for Pillow/aiohttp):
+
+```powershell
+& 'Q:\Ai\Comfy\stacks\comfyui-0.45\env\Scripts\python.exe' -m unittest discover -s tests -v
+```
+
+Benchmark (generates temporary files, reports cold/warm scans):
+
+```powershell
+& 'Q:\Ai\Comfy\stacks\comfyui-0.45\env\Scripts\python.exe' tests\benchmark_scan.py 1000
+```
+
+The frontend is type-checked by `npm run build` (`tsc -b && vite build`).
+
+## Known limitations
+
+- Thumbnails are generated for raster images (`.png`, `.jpg`, `.jpeg`, `.webp`,
+  `.gif`); video/audio/3D assets keep using their native preview path.
+- Batch delete is permanent (no trash/undo).
+- Thumbnail cache files are evicted by key changes and delete/move invalidation,
+  but old files from previous processes are not garbage-collected by age yet.

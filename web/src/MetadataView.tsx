@@ -1,7 +1,8 @@
-import { Typography, Button, Flex, Descriptions, Tooltip, message, Image, Popconfirm } from 'antd';
+import { Typography, Button, Flex, Descriptions, Tooltip, message, Image, Popconfirm, Spin, theme } from 'antd';
 import { parseComfyMetadata } from './metadata-parser/metadataParser';
-import { useState, useMemo, useCallback } from 'react';
-import type { FileDetails } from './types';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import type { FileDetails, Metadata } from './types';
+import { hasMetadata } from './types';
 import ReactJsonView from '@microlink/react-json-view';
 import Modal from 'antd/es/modal/Modal';
 import { ComfyAppApi, BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
@@ -12,6 +13,7 @@ import DownloadOutlined from '@ant-design/icons/lib/icons/DownloadOutlined';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import { saveAs } from 'file-saver';
 import { ModelViewer } from './ModelViewer';
+import { galleryThemeClass } from './theme';
 
 const PROMPT_ROW_LIMIT = 6;
 
@@ -26,11 +28,54 @@ export function MetadataView({
     showRawMetadata: boolean,
     setShowRawMetadata: (show: boolean) => void
 }) {
-    const meta = useMemo(() => parseComfyMetadata(image.metadata), [image.metadata]);
+    const [metadata, setMetadata] = useState<Metadata>(image.metadata);
+    const [metaLoading, setMetaLoading] = useState(!hasMetadata(image));
+    const [metaError, setMetaError] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
 
-    const { mutate, currentFolder, settings } = useGalleryContext();
+    const { mutate, currentFolder, settings, deleteAssets } = useGalleryContext();
+    const { token } = theme.useToken();
+
+    // Metadata is loaded lazily by the server. Fetch it only when the info view
+    // is actually opened, then cache it into the shared tree.
+    useEffect(() => {
+        let alive = true;
+        setMetadata(image.metadata);
+        setMetaError(false);
+        if (hasMetadata(image)) {
+            setMetaLoading(false);
+            return () => { alive = false; };
+        }
+        setMetaLoading(true);
+        ComfyAppApi.fetchMetadata(image.url)
+            .then((fetched: Metadata) => {
+                if (!alive) return;
+                setMetadata(fetched);
+                setMetaLoading(false);
+                if (!hasMetadata({ metadata: fetched })) return;
+                mutate((oldData) => {
+                    if (!oldData?.folders?.[currentFolder]?.[image.name]) return oldData;
+                    const folder = oldData.folders[currentFolder];
+                    const folders = {
+                        ...oldData.folders,
+                        [currentFolder]: {
+                            ...folder,
+                            [image.name]: { ...folder[image.name], metadata: fetched },
+                        },
+                    };
+                    return { ...oldData, folders };
+                });
+            })
+            .catch(() => {
+                if (!alive) return;
+                setMetaError(true);
+                setMetaLoading(false);
+            });
+        return () => { alive = false; };
+    }, [image.url, image.name, image.timestamp, image.metadata, currentFolder, mutate]);
+
+    const meta = useMemo(() => parseComfyMetadata(metadata), [metadata]);
 
     // Memoize prompt value renderer
     const renderPromptValue = useCallback((key: string, value: string) => {
@@ -147,13 +192,13 @@ export function MetadataView({
 
     // Memoize delete handler
     const handleDelete = useCallback(async () => {
-        const success = await ComfyAppApi.deleteImage(image.url);
-        if (success) {
+        const result = await deleteAssets([image.url]);
+        if (result.deleted.length > 0) {
             message.success('Image deleted');
         } else {
-            message.error('Failed to delete image');
+            message.error(result.failed[0]?.error || 'Failed to delete image');
         }
-    }, [image.url]);
+    }, [deleteAssets, image.url]);
 
     return (
         <div
@@ -248,8 +293,8 @@ export function MetadataView({
                                     icon={<CopyOutlined />}
                                     size="small"
                                     style={{
-                                        background: '#222',
-                                        color: '#fff',
+                                        background: token.colorBgElevated,
+                                        color: token.colorText,
                                         border: 'none',
                                         boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
                                     }}
@@ -301,8 +346,8 @@ export function MetadataView({
                                 icon={<DownloadOutlined />}
                                 size="small"
                                 style={{
-                                    background: '#222',
-                                    color: '#fff',
+                                    background: token.colorBgElevated,
+                                    color: token.colorText,
                                     border: 'none',
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
                                 }}
@@ -318,7 +363,7 @@ export function MetadataView({
                                 maxWidth: 420,
                                 maxHeight: 600,
                                 borderRadius: 12,
-                                background: '#222',
+                                background: token.colorBgElevated,
                             }}
                             src={`${BASE_PATH}${image.url}`}
                             loading="lazy"
@@ -331,7 +376,7 @@ export function MetadataView({
                                 maxWidth: 420,
                                 maxHeight: 600,
                                 borderRadius: 12,
-                                background: '#222',
+                                background: token.colorBgElevated,
                             }}
                             src={`${BASE_PATH}${image.url}`}
                             autoPlay={true}
@@ -340,8 +385,8 @@ export function MetadataView({
                         />
                     )}
                     {image.type == "audio" && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '420px', height: '400px', background: '#23272f', borderRadius: 12 }}>
-                            <SoundOutlined style={{ fontSize: '100px', color: '#1890ff', marginBottom: '40px' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '420px', height: '400px', background: token.colorBgContainer, borderRadius: 12 }}>
+                            <SoundOutlined style={{ fontSize: '100px', color: token.colorPrimary, marginBottom: '40px' }} />
                             <audio
                                 style={{ width: '80%' }}
                                 src={`${BASE_PATH}${image.url}`}
@@ -363,33 +408,50 @@ export function MetadataView({
                 </div>
             </div>
             {image.type === 'image' && (
-                <Card>
-                    <Descriptions
-                        bordered
-                        column={1}
-                        items={items}
-                        style={{
-                            // background: 'rgba(30, 30, 30, 0.97)', 
-                            color: "black",
-                            borderRadius: 8,
-                            padding: 8,
-                            width: '100%',
-                            maxWidth: 520
-                        }}
-                        styles={{
-                            label: {
-                                fontWeight: 600,
-                                width: 120,
-                            },
-                            content: {
-                                fontWeight: 400,
-                            }
-                        }}
-                    />
+                <Card
+                    style={{
+                        background: token.colorBgElevated,
+                        borderColor: token.colorBorderSecondary,
+                        boxShadow: token.boxShadowSecondary,
+                        maxHeight: '82vh',
+                        overflowY: 'auto',
+                    }}
+                >
+                    {metaLoading ? (
+                        <Flex align="center" justify="center" style={{ minWidth: 260, minHeight: 120 }}>
+                            <Spin tip="Loading metadata..." />
+                        </Flex>
+                    ) : metaError && items.length === 0 ? (
+                        <Typography.Text type="secondary">Metadata is unavailable for this asset.</Typography.Text>
+                    ) : items.length === 0 ? (
+                        <Typography.Text type="secondary">No metadata in this file.</Typography.Text>
+                    ) : (
+                        <Descriptions
+                            bordered
+                            column={1}
+                            items={items}
+                            style={{
+                                borderRadius: 8,
+                                padding: 8,
+                                width: '100%',
+                                maxWidth: 520
+                            }}
+                            styles={{
+                                label: {
+                                    fontWeight: 600,
+                                    width: 120,
+                                },
+                                content: {
+                                    fontWeight: 400,
+                                }
+                            }}
+                        />
+                    )}
                 </Card>
             )}
             <Modal
                 zIndex={BASE_Z_INDEX + 2}
+                rootClassName={`gallery-modal-root ${galleryThemeClass(settings.darkMode)}`}
                 title={image ? `Raw Metadata: ${image.name}` : 'Raw Metadata'}
                 open={showRawMetadata}
                 onCancel={() => setShowRawMetadata(false)}
@@ -407,14 +469,14 @@ export function MetadataView({
                         onTouchStart={e => e.stopPropagation()}
                     >
                         <ReactJsonView
-                            theme={settings.darkMode ? "apathy" : "apathy:inverted"}
-                            src={image.metadata || {}}
+                            theme={settings.darkMode ? "apathy" : "rjv-default"}
+                            src={metadata || {}}
                             name={false}
                             collapsed={2}
                             enableClipboard={true}
                             displayDataTypes={false}
                             style={{
-
+                                background: 'transparent',
                             }}
                         />
                     </div>

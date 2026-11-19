@@ -1,12 +1,18 @@
-import { Button, Image, Typography } from 'antd';
+import { App, Button, Image, Popconfirm, Tooltip, Typography } from 'antd';
 import type { FileDetails } from './types';
+import CheckCircleFilled from '@ant-design/icons/lib/icons/CheckCircleFilled';
+import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
 import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
+import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import React, { useRef, useState } from 'react';
-import { useDrag, useEventListener } from 'ahooks';
+import { useDrag } from 'ahooks';
 import { useGalleryContext } from './GalleryContext';
 import { BASE_PATH } from './ComfyAppApi';
 import { use3DThumbnail } from './GlobalModelRenderer';
+import { useThumbnail } from './thumbnails';
+
+const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick: () => void }) => {
     const typeMatch = image.url.match(/\.([^.]+)$/);
@@ -33,8 +39,8 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
                 <Image
                     id={image.url}
                     style={{ display: 'none' }}
-                    src={`${BASE_PATH}${image.url}`}
-                    onClick={onClick}
+                    src={TRANSPARENT_PIXEL}
+                    preview={{ src: `${BASE_PATH}${image.url}` }}
                 />
             </>
         );
@@ -42,18 +48,18 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
 
     return (
         <div
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: '#23272f', cursor: 'pointer' }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'var(--gallery-card-bg)', cursor: 'pointer' }}
             onClick={onClick}
         >
-            <div style={{ fontSize: '64px', color: '#1890ff', marginBottom: '24px', fontWeight: 'bold' }}>3D</div>
+            <div style={{ fontSize: '64px', color: 'var(--gallery-accent)', marginBottom: '24px', fontWeight: 'bold' }}>3D</div>
             <Typography.Text style={{ padding: '0 16px', textAlign: 'center', maxWidth: '100%' }} ellipsis>
                 {image.name}
             </Typography.Text>
             <Image
                 id={image.url}
                 style={{ display: 'none' }}
-                src={`${BASE_PATH}${image.url}`}
-                onClick={onClick}
+                src={TRANSPARENT_PIXEL}
+                preview={{ src: `${BASE_PATH}${image.url}` }}
             />
         </div>
     );
@@ -73,9 +79,16 @@ function ImageCard({
     onInfoClick: (imageName: string | undefined) => void;
     onVideoClick: (imageName: string | undefined) => void;
 }) {
-    const { settings, selectedImages, setSelectedImages, setPreviewingVideo } = useGalleryContext();
+    const { settings, selectedSet, selectImage, deleteAssets, setPreviewingVideo } = useGalleryContext();
+    const { message } = App.useApp();
     const dragRef = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const [dragging, setDragging] = useState(false);
+    const [videoPlaying, setVideoPlaying] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, ImageCardWidth, image.type === 'image');
+    const originalSrc = `${BASE_PATH}${image.url}`;
+    const selected = selectedSet.has(image.url);
 
     useDrag(
         {
@@ -91,22 +104,32 @@ function ImageCard({
         }
     );
 
-    // Use ctrlKey from click event, not global state
-    const handleCardClick = (event: React.MouseEvent) => {
-        if (event.ctrlKey || event.metaKey) {
-            // The click dont stop
-            event.stopPropagation();
-            event.preventDefault();
+    // Modifier clicks must not open the antd preview; handle them in capture phase.
+    const handleClickCapture = (event: React.MouseEvent) => {
+        if (!(event.ctrlKey || event.metaKey || event.shiftKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        selectImage(image.url, {
+            ctrl: event.ctrlKey || event.metaKey,
+            shift: event.shiftKey,
+        });
+    };
 
-            setSelectedImages((oldSelectedImages) => {
-                if (oldSelectedImages.includes(image.url)) {
-                    return [...oldSelectedImages.filter((selectedImage) => selectedImage != image.url)];
-                } else {
-                    return [...oldSelectedImages, image.url];
-                }
-            });
-        } else {
-            setSelectedImages([]);
+    const handleCardClick = () => {
+        selectImage(image.url, {});
+    };
+
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            const result = await deleteAssets([image.url]);
+            if (result.deleted.length > 0) {
+                message.success('Asset deleted');
+            } else {
+                message.error(result.failed[0]?.error || 'Failed to delete asset');
+            }
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -132,13 +155,20 @@ function ImageCard({
 
         event.dataTransfer.setData('text/uri-list', `${BASE_PATH}${image.url}`);
         event.dataTransfer.setData('DownloadURL', `${mimeType}:${image.name}:${window.location.origin + BASE_PATH + image.url}`);
-        // Optionally, set a drag image
-        // event.dataTransfer.setDragImage(event.currentTarget, 10, 10);
     };
+
+    const openPreview = () => {
+        try { setPreviewingVideo(undefined); } catch { }
+        document.getElementById(image.url)?.click();
+    };
+
+    const imageSrc = thumbnailSrc ?? (thumbnailState === 'error' ? originalSrc : TRANSPARENT_PIXEL);
 
     return (<>
         <div
-            className='image-card'
+            className={`image-card${selected ? ' gallery-card-selected' : ''}`}
+            data-asset-url={image.url}
+            data-asset-index={index}
             ref={dragRef}
             style={{
                 width: ImageCardWidth,
@@ -146,7 +176,6 @@ function ImageCard({
                 borderRadius: 8,
                 overflow: "hidden",
                 margin: "15px",
-                border: dragging ? '2px solid #1890ff' : 'none',
                 opacity: dragging ? 0.5 : 1,
                 display: "flex",
                 alignContent: "center",
@@ -154,73 +183,78 @@ function ImageCard({
                 alignItems: "center",
                 position: "relative",
                 cursor: 'grab',
-                boxShadow: selectedImages.includes(image.url) ? '0 0 0 3px #1890ff' : undefined,
             }}
+            onClickCapture={handleClickCapture}
             onClick={handleCardClick}
         >
             {image.type == "image" ? (<>
+                {thumbnailState === 'loading' && <div className="gallery-thumb-placeholder" />}
                 <Image
                     id={image.url}
                     style={{
                         objectFit: "cover",
+                        position: "relative",
+                        zIndex: 1,
                         ...(settings.imageThumbFit === 'height'
                             ? { maxHeight: ImageCardHeight, width: 'auto', maxWidth: '100%' }
                             : { maxWidth: ImageCardWidth, width: '100%', height: 'auto' }),
                         userSelect: 'none',
                         cursor: 'grab',
                     }}
-                    src={`${BASE_PATH}${image.url}`}
+                    src={imageSrc}
                     loading="lazy"
-                    // preview={false}
-                    onClick={() => {
-                        // Ensure any leftover media preview state is cleared so this opens as an image
-                        try { setPreviewingVideo(undefined); } catch { }
-                        // Trigger the preview
-                        document.getElementById(image.url)?.click();
-                    }}
+                    preview={{ src: originalSrc }}
+                    onClick={() => setPreviewingVideo(undefined)}
                     alt={image.name}
                     draggable
                     onDragStart={handleNativeDragStart}
+                    onError={() => { /* useThumbnail already falls back via state */ }}
                 />
             </>) : image.type === "audio" ? (<>
                 <div
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
-                    onClick={() => {
-                        try { setPreviewingVideo(undefined); } catch { }
-                        document.getElementById(image.url)?.click();
-                    }}
+                    onClick={openPreview}
                 >
-                    <SoundOutlined style={{ fontSize: '64px', color: '#1890ff', marginBottom: '24px' }} />
+                    <SoundOutlined style={{ fontSize: '64px', color: 'var(--gallery-accent)', marginBottom: '24px' }} />
                     <Typography.Text style={{ marginBottom: '16px', padding: '0 16px', textAlign: 'center', maxWidth: '100%' }} ellipsis>
                         {image.name}
                     </Typography.Text>
-                    <audio controls style={{ width: '90%', height: '40px' }} src={`${BASE_PATH}${image.url}`} onClick={(e) => e.stopPropagation()} />
+                    <audio controls preload="none" style={{ width: '90%', height: '40px' }} src={originalSrc} onClick={(e) => e.stopPropagation()} />
                     <Image
                         id={image.url}
                         style={{ display: 'none' }}
-                        src={`${BASE_PATH}${image.url}`}
-                        loading="lazy"
-                        alt={image.name}
+                        src={TRANSPARENT_PIXEL}
+                        preview={{ src: originalSrc }}
                     />
                 </div>
             </>) : image.type === "3d" ? (
-                <ImageCard3DThumbnail image={image as any} onClick={() => {
-                    try { setPreviewingVideo(undefined); } catch { }
-                    document.getElementById(image.url)?.click();
-                }} />
+                <ImageCard3DThumbnail image={image as any} onClick={openPreview} />
             ) : <>
                 <video
+                    ref={videoRef}
                     style={{
                         ...(settings.videoThumbFit === 'height'
                             ? { maxHeight: ImageCardHeight }
                             : { maxWidth: ImageCardWidth }),
-                        cursor: "pointer"
+                        cursor: "pointer",
+                        zIndex: 1,
                     }}
-                    src={`${BASE_PATH}${image.url}`}
-                    autoPlay={settings.autoPlayVideos}
-                    loop={settings.autoPlayVideos}
-                    muted={true}
-                    preload={!settings.autoPlayVideos ? undefined : "none"}
+                    src={originalSrc}
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onMouseEnter={() => {
+                        if (settings.autoPlayVideos) {
+                            videoRef.current?.play().catch(() => { });
+                        }
+                    }}
+                    onMouseLeave={() => {
+                        videoRef.current?.pause();
+                        setVideoPlaying(false);
+                    }}
+                    onPlaying={() => setVideoPlaying(true)}
+                    onPause={() => setVideoPlaying(false)}
                     onClick={() => {
                         onVideoClick(image.name);
                         document.getElementById(image.url)?.click();
@@ -228,52 +262,65 @@ function ImageCard({
                     draggable
                     onDragStart={handleNativeDragStart}
                 />
+                {!videoPlaying && settings.autoPlayVideos && <PlayCircleFilled className="gallery-card-play" />}
                 <Image
                     id={image.url}
-                    style={{
-                        display: "none"
-                    }}
-                    src={`${BASE_PATH}${image.url}`}
-                    loading="lazy"
-                    // preview={false}
+                    style={{ display: "none" }}
+                    src={TRANSPARENT_PIXEL}
+                    preview={{ src: originalSrc }}
                     alt={image.name}
                 />
             </>}
+
+            {selected && <CheckCircleFilled className="gallery-card-selected-check" />}
+
             <div
-                style={{
-                    position: "absolute",
-                    backgroundColor: "#00000042",
-                    width: "-webkit-fill-available",
-                    padding: "10px",
-                    bottom: "0px",
-                    display: "flex",
-                    alignContent: "center",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                }}
+                className="gallery-card-delete"
+                onClick={(event) => { event.stopPropagation(); event.preventDefault(); }}
+                onPointerDown={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
             >
+                <Popconfirm
+                    title="Delete asset?"
+                    description={image.name}
+                    okText="Delete"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={handleDelete}
+                >
+                    <Button
+                        danger
+                        type="primary"
+                        shape="circle"
+                        size="small"
+                        loading={deleting}
+                        icon={<DeleteOutlined />}
+                        aria-label={`Delete ${image.name}`}
+                    />
+                </Popconfirm>
+            </div>
+
+            <div className="gallery-card-footer">
                 <Typography.Text
                     strong
-                    style={{
-                        margin: 0,
-                        color: "white"
-                    }}
-                    ellipsis={{
-
-                    }}
+                    className="gallery-card-title"
+                    ellipsis
                 >
                     {image.name}
                 </Typography.Text>
-                <Button
-                    color="cyan"
-                    variant="filled"
-                    icon={<InfoCircleOutlined />}
-                    size={"middle"}
-                    onClick={() => {
-                        onInfoClick(image.name);
-                        document.getElementById(image.url)?.click();
-                    }}
-                />
+                <Tooltip title="Metadata">
+                    <Button
+                        color="cyan"
+                        variant="filled"
+                        icon={<InfoCircleOutlined />}
+                        size={"middle"}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onInfoClick(image.name);
+                            document.getElementById(image.url)?.click();
+                        }}
+                    />
+                </Tooltip>
             </div>
         </div>
     </>)
