@@ -15,6 +15,7 @@ import { useThumbnail } from './thumbnails';
 const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick: () => void }) => {
+    const { cardWidth } = useGalleryContext();
     const typeMatch = image.url.match(/\.([^.]+)$/);
     const type = typeMatch ? typeMatch[1].toLowerCase() : '';
     const thumbnail = use3DThumbnail(`${BASE_PATH}${image.url}`, type);
@@ -25,7 +26,7 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
                 <img
                     style={{
                         objectFit: "cover",
-                        maxWidth: ImageCardWidth,
+                        maxWidth: cardWidth,
                         width: '100%',
                         height: '100%',
                         userSelect: 'none',
@@ -65,9 +66,6 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
     );
 };
 
-export const ImageCardWidth = 350;
-export const ImageCardHeight = 450;
-
 function ImageCard({
     image,
     index,
@@ -79,7 +77,7 @@ function ImageCard({
     onInfoClick: (imageName: string | undefined) => void;
     onVideoClick: (imageName: string | undefined) => void;
 }) {
-    const { settings, selectedSet, selectImage, deleteAssets, setPreviewingVideo } = useGalleryContext();
+    const { settings, selectedSet, selectImage, deleteAssets, setPreviewingVideo, cardWidth, cardHeight } = useGalleryContext();
     const { message } = App.useApp();
     const dragRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -88,7 +86,7 @@ function ImageCard({
     const [videoMuted, setVideoMuted] = useState(true);
     const [videoHovered, setVideoHovered] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, ImageCardWidth, image.type === 'image');
+    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, cardWidth, image.type === 'image');
     const originalSrc = `${BASE_PATH}${image.url}`;
     const selected = selectedSet.has(image.url);
 
@@ -227,11 +225,11 @@ function ImageCard({
             data-asset-index={index}
             ref={dragRef}
             style={{
-                width: ImageCardWidth,
-                height: ImageCardHeight,
+                width: cardWidth,
+                height: cardHeight,
                 borderRadius: 8,
                 overflow: "hidden",
-                margin: "15px",
+                margin: 8,
                 opacity: dragging ? 0.5 : 1,
                 display: "flex",
                 alignContent: "center",
@@ -254,8 +252,8 @@ function ImageCard({
                         position: "relative",
                         zIndex: 1,
                         ...(settings.imageThumbFit === 'height'
-                            ? { maxHeight: ImageCardHeight, width: 'auto', maxWidth: '100%' }
-                            : { maxWidth: ImageCardWidth, width: '100%', height: 'auto' }),
+                            ? { maxHeight: cardHeight, width: 'auto', maxWidth: '100%' }
+                            : { maxWidth: cardWidth, width: '100%', height: 'auto' }),
                         userSelect: 'none',
                         cursor: 'grab',
                     }}
@@ -292,8 +290,8 @@ function ImageCard({
                     ref={videoRef}
                     style={{
                         ...(settings.videoThumbFit === 'height'
-                            ? { maxHeight: ImageCardHeight }
-                            : { maxWidth: ImageCardWidth }),
+                            ? { maxHeight: cardHeight }
+                            : { maxWidth: cardWidth }),
                         cursor: "pointer",
                         zIndex: 1,
                     }}

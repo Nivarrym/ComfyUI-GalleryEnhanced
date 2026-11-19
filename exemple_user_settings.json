@@ -16,5 +16,7 @@
     "imageThumbFit": null,
     "videoThumbFit": null,
     "deduplicateSymlinks": null,
-    "debugPerf": null
+    "debugPerf": null,
+    "thumbSize": null,
+    "sidebarWidth": null
 }

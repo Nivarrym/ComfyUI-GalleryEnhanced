@@ -28,6 +28,8 @@ export interface SettingsState {
     videoThumbFit: 'width' | 'height';
     deduplicateSymlinks: boolean;
     debugPerf: boolean;
+    thumbSize: number;
+    sidebarWidth: number;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -48,6 +50,8 @@ export const DEFAULT_SETTINGS: SettingsState = {
     videoThumbFit: 'height',
     deduplicateSymlinks: true,
     debugPerf: false,
+    thumbSize: 350,
+    sidebarWidth: 320,
 };
 
 export const STORAGE_KEY = 'comfy-ui-gallery-settings';
@@ -111,6 +115,11 @@ export interface GalleryContextType {
     themePreview: boolean | null;
     setThemePreview: Dispatch<SetStateAction<boolean | null>>;
     effectiveDarkMode: boolean;
+    thumbSizePreview: number | null;
+    setThumbSizePreview: Dispatch<SetStateAction<number | null>>;
+    effectiveThumbSize: number;
+    cardWidth: number;
+    cardHeight: number;
     selectedImages: string[];
     selectedSet: Set<string>;
     setSelectedImages: React.Dispatch<React.SetStateAction<string[]>>;
@@ -158,6 +167,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [showRawMetadata, setShowRawMetadata] = useState(false);
     const [showPerf, setShowPerf] = useState(false);
     const [themePreview, setThemePreview] = useState<boolean | null>(null);
+    const [thumbSizePreview, setThumbSizePreview] = useState<number | null>(null);
     const [sortMethod, setSortMethod] = useState<'Newest' | 'Oldest' | 'Name ↑' | 'Name ↓'>("Newest");
     const [imageInfoName, setImageInfoName] = useState<string | undefined>(undefined);
     const [open, setOpen] = useState(false);
@@ -179,6 +189,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     const mergedSettings = useMemo<SettingsState>(() => mergeSettings(DEFAULT_SETTINGS, settingsState), [settingsState]);
     const effectiveDarkMode = themePreview ?? !!mergedSettings.darkMode;
+    const effectiveThumbSize = Math.min(600, Math.max(160, thumbSizePreview ?? mergedSettings.thumbSize ?? 350));
+    const cardWidth = Math.round(effectiveThumbSize);
+    const cardHeight = Math.round(cardWidth * (450 / 350));
     const settingsRef = useRef<SettingsState>(mergedSettings);
     const bootstrappedRef = useRef(false);
     const appliedMonitorKeyRef = useRef<string>('');
@@ -378,6 +391,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     // outside the dialog or into the persisted settings.
     useEffect(() => {
         if (!open) setThemePreview(null);
+        if (!open) setThumbSizePreview(null);
     }, [open]);
 
     // Keep the folder tree usable when the selected folder disappears.
@@ -570,6 +584,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     const saveSettings = useCallback((newSettings: SettingsState) => {
         setThemePreview(null);
+        setThumbSizePreview(null);
         setPerfEnabled(FORCE_PERF || !!newSettings.debugPerf);
         setSettings(newSettings);
         ComfyAppApi.saveSettings(newSettings);
@@ -641,6 +656,11 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         themePreview,
         setThemePreview,
         effectiveDarkMode,
+        thumbSizePreview,
+        setThumbSizePreview,
+        effectiveThumbSize,
+        cardWidth,
+        cardHeight,
         selectedImages,
         selectedSet,
         setSelectedImages,
@@ -683,6 +703,10 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         saveSettings,
         themePreview,
         effectiveDarkMode,
+        thumbSizePreview,
+        effectiveThumbSize,
+        cardWidth,
+        cardHeight,
         selectedImages,
         selectedSet,
         selectionAnchor,

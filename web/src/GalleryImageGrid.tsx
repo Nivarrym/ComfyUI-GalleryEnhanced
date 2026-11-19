@@ -2,7 +2,7 @@ import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Empty, Image, Spin } from 'antd';
 import { AutoSizer } from 'react-virtualized';
 import { VariableSizeGrid } from 'react-window';
-import ImageCard, { ImageCardHeight, ImageCardWidth } from './ImageCard';
+import ImageCard from './ImageCard';
 import { useGalleryContext } from './GalleryContext';
 import { MetadataView } from './MetadataView';
 import { ModelViewer } from './ModelViewer';
@@ -10,6 +10,7 @@ import type { FileDetails } from './types';
 import { BASE_PATH } from "./ComfyAppApi";
 import { useBoxSelection } from './useBoxSelection';
 import SelectionToolbar from './SelectionToolbar';
+import GallerySizeControl from './GallerySizeControl';
 import { perfMeasure } from './perf';
 
 const GalleryImageGrid = () => {
@@ -34,6 +35,8 @@ const GalleryImageGrid = () => {
         selectedImages,
         setSelectedImages,
         clearSelection,
+        cardWidth,
+        cardHeight,
     } = useGalleryContext();
     const containerRef = useRef<HTMLDivElement>(null);
     const gridRef = useRef<any>(null);
@@ -70,7 +73,7 @@ const GalleryImageGrid = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: `calc(${gridSize.columnCount} * ${ImageCardWidth + 16}px)`,
+                        width: `calc(${gridSize.columnCount} * ${cardWidth + 16}px)`,
                         gridColumn: `span ${gridSize.columnCount}`,
                         background: 'transparent',
                         padding: 0,
@@ -119,25 +122,25 @@ const GalleryImageGrid = () => {
                 />
             </div>
         );
-    }, [gridSize.columnCount, imagesDetailsList, handleInfoClick, setPreviewingVideo, currentFolder]);
+    }, [gridSize.columnCount, imagesDetailsList, handleInfoClick, setPreviewingVideo, currentFolder, cardWidth]);
 
     const rowHeight = useCallback((index: number) => {
         const firstCell = imagesDetailsList[index * gridSize.columnCount];
-        return firstCell?.type === 'divider' ? 56 : ImageCardHeight + 16;
-    }, [gridSize.columnCount, imagesDetailsList]);
+        return firstCell?.type === 'divider' ? 56 : cardHeight + 16;
+    }, [gridSize.columnCount, imagesDetailsList, cardHeight]);
 
     useEffect(() => {
         gridRef.current?.resetAfterIndices?.({ rowIndex: 0, columnIndex: 0, shouldForceUpdate: true });
-    }, [imagesDetailsList, gridSize.columnCount]);
+    }, [imagesDetailsList, gridSize.columnCount, cardWidth, cardHeight]);
 
     useEffect(() => {
         const { width, height } = autoSizer;
-        const columnCount = Math.max(1, Math.floor(width / (ImageCardWidth + 16)));
+        const columnCount = Math.max(1, Math.floor(width / (cardWidth + 16)));
         const rowCount = Math.ceil(imagesDetailsList.length / columnCount);
         if (gridSize.width !== width || gridSize.height !== height || gridSize.columnCount !== columnCount || gridSize.rowCount !== rowCount) {
             setGridSize({ width, height, columnCount, rowCount });
         }
-    }, [autoSizer.width, autoSizer.height, imagesDetailsList.length]);
+    }, [autoSizer.width, autoSizer.height, imagesDetailsList.length, cardWidth]);
 
     useEffect(() => {
         gridRef.current?.scrollToItem({ rowIndex: 0, columnIndex: 0, align: 'start' });
@@ -296,10 +299,10 @@ const GalleryImageGrid = () => {
                                     ref={gridRef}
                                     columnCount={gridSize.columnCount}
                                     rowCount={gridSize.rowCount}
-                                    columnWidth={() => ImageCardWidth + 16}
+                                    columnWidth={() => cardWidth + 16}
                                     rowHeight={rowHeight}
-                                    estimatedRowHeight={ImageCardHeight + 16}
-                                    estimatedColumnWidth={ImageCardWidth + 16}
+                                    estimatedRowHeight={cardHeight + 16}
+                                    estimatedColumnWidth={cardWidth + 16}
                                     width={width}
                                     height={height}
                                     className={"grid-element"}
@@ -330,6 +333,7 @@ const GalleryImageGrid = () => {
             )}
 
             <SelectionToolbar />
+            <GallerySizeControl />
         </div>
     );
 };

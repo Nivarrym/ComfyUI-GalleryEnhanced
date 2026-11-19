@@ -50,6 +50,8 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Enable/Disable Ctrl+G Shortcut (v2.1.0):** Toggle the keyboard shortcut for opening the gallery (Ctrl+G) on or off from the settings panel.
     *   **Expand All Folders (v2.3.1):** Choose whether the folder sidebar tree is fully expanded or collapsed by default, for easier navigation of large folder structures.
 *   **Sidebar (Sider) Toggle (v2.0.0):** Collapse or expand the sidebar for a distraction-free or navigational experience.
+*   **Resizable Sidebar (v2.9.0):** Drag the divider at the right edge of the folder tree to change its width; double-click the divider to reset. The width is remembered.
+*   **Preview Size Slider (v2.9.0):** A slider in the bottom-left corner changes the asset card size (160–600 px) live while dragging; the chosen size is saved.
 *   **Hover to close button (v1.6.0, React version in v2.0.0):** A button appears in the header when dragging an image, allowing you to hover over it to close the gallery (useful for dropping images into your workflow).
 *   **Hotkeys navigation (v1.7.0, React version in v2.0.0):** Simple navigation with ← → arrows and ESC button while viewing images on fullscreen (provided by Ant Design's Image Preview).
 
@@ -121,6 +123,10 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.9.0 (fork):**
+    *   **Preview size slider:** bottom-left slider resizes asset cards live (160–600 px) and persists the choice.
+    *   **Resizable sidebar:** drag the divider to resize the folder tree; double-click resets to 320 px. Width is persisted.
 
 *   **v2.8.2 (fork):**
     *   **Header layout:** reserved space for the modal close button, so the sort control no longer overlaps the X.

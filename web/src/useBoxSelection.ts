@@ -152,7 +152,7 @@ export function useBoxSelection({
         if (!enabled || event.button !== 0 || event.isPrimary === false) return;
         const target = event.target as HTMLElement;
         if (target.closest(itemSelector)) return;
-        if (target.closest('button, a, input, textarea, select, .ant-tree, .gallery-selection-toolbar, .ant-image-preview-root')) return;
+        if (target.closest('button, a, input, textarea, select, .ant-tree, .gallery-selection-toolbar, .gallery-size-control, .ant-image-preview-root')) return;
         const container = containerRef.current;
         if (!container) return;
 

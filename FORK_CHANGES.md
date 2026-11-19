@@ -7,6 +7,14 @@ is the unmodified 2.7.1 import.
 
 ## New features
 
+### Layout: preview size and sidebar width
+
+- **Preview size slider** in the bottom-left corner of the gallery changes card
+  size from 160 to 600 px while dragging (`thumbSize` setting, persisted).
+- **Resizable sidebar**: drag the vertical divider on the right edge of the
+  folder tree to resize it (`sidebarWidth` setting, persisted). Double-click the
+  divider to reset it to 320 px.
+
 ### Selection and batch operations
 
 - **Ctrl/Cmd+click** toggles one asset; **Shift+click** selects the range between
@@ -83,6 +91,10 @@ real static root (realpath containment, no `..`, no absolute escapes).
 
 ## Settings
 
+- `thumbSize` (default `350`) — asset card width in pixels (160–600), changed by
+  the bottom slider.
+- `sidebarWidth` (default `320`) — folder tree width in pixels, changed by
+  dragging its divider.
 - `debugPerf` (default `false`) — verbose client/server performance logging.
 - `autoPlayVideos` now means “play videos on hover” (the grid never autoplays
   every visible video at once).
