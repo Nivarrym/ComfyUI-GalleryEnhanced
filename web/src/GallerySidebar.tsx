@@ -122,7 +122,7 @@ const FolderTitle = memo(({ nodeData }: { nodeData: any }) => {
     );
 });
 
-const GallerySidebar = () => {
+const GallerySidebar = memo(function GallerySidebar() {
     const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings, clearSelection } = useGalleryContext();
     // Only recalculate treeData if folder structure actually changes
     const treeData = useMemo(() => {
@@ -203,6 +203,6 @@ const GallerySidebar = () => {
             </div>
         </div>
     );
-};
+});
 
 export default GallerySidebar;

@@ -7,17 +7,18 @@ import FolderOpenOutlined from '@ant-design/icons/lib/icons/FolderOpenOutlined';
 import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
 import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
-import { useGalleryContext } from './GalleryContext';
+import type { Dispatch, SetStateAction } from 'react';
+import type { DeleteResult } from './ComfyAppApi';
+import type { SettingsState, SelectionModifiers } from './GalleryContext';
 import { BASE_PATH, ComfyAppApi } from './ComfyAppApi';
 import { use3DThumbnail } from './GlobalModelRenderer';
-import { useThumbnail } from './thumbnails';
+import { GRID_THUMBNAIL_WIDTH, useThumbnail } from './thumbnails';
 
 const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick: () => void }) => {
-    const { cardWidth } = useGalleryContext();
     const typeMatch = image.url.match(/\.([^.]+)$/);
     const type = typeMatch ? typeMatch[1].toLowerCase() : '';
     const thumbnail = use3DThumbnail(`${BASE_PATH}${image.url}`, type);
@@ -28,7 +29,7 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
                 <img
                     style={{
                         objectFit: "cover",
-                        maxWidth: cardWidth,
+                        maxWidth: 'var(--gallery-card-width, 350px)',
                         width: '100%',
                         height: '100%',
                         userSelect: 'none',
@@ -68,18 +69,27 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
     );
 };
 
-function ImageCard({
+const ImageCard = memo(function ImageCard({
     image,
-    index,
+    dragFolder,
     onInfoClick,
-    onVideoClick
+    onVideoClick,
+    settings,
+    selectedSet,
+    selectImage,
+    deleteAssets,
+    setPreviewingVideo,
 }: {
     image: FileDetails & { dragFolder?: string };
-    index: number;
-    onInfoClick: (imageName: string | undefined) => void;
+    dragFolder?: string;
+    onInfoClick: (imageName: string) => void;
     onVideoClick: (imageName: string | undefined) => void;
+    settings: SettingsState;
+    selectedSet: Set<string>;
+    selectImage: (url: string, modifiers?: SelectionModifiers) => void;
+    deleteAssets: (urls: string[]) => Promise<DeleteResult>;
+    setPreviewingVideo: Dispatch<SetStateAction<string | undefined>>;
 }) {
-    const { settings, selectedSet, selectImage, deleteAssets, setPreviewingVideo, cardWidth, cardHeight } = useGalleryContext();
     const { message } = App.useApp();
     const dragRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -88,7 +98,7 @@ function ImageCard({
     const [videoMuted, setVideoMuted] = useState(true);
     const [videoHovered, setVideoHovered] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, cardWidth, image.type === 'image');
+    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, GRID_THUMBNAIL_WIDTH, image.type === 'image');
     const originalSrc = `${BASE_PATH}${image.url}`;
     const selected = selectedSet.has(image.url);
 
@@ -149,7 +159,7 @@ function ImageCard({
     useDrag(
         {
             name: image.name,
-            folder: image.dragFolder || '',
+            folder: dragFolder || image.dragFolder || '',
             type: image.type,
             url: image.url,
         },
@@ -243,11 +253,10 @@ function ImageCard({
         <div
             className={`image-card${selected ? ' gallery-card-selected' : ''}`}
             data-asset-url={image.url}
-            data-asset-index={index}
             ref={dragRef}
             style={{
-                width: cardWidth,
-                height: cardHeight,
+                width: 'var(--gallery-card-width, 350px)',
+                height: 'var(--gallery-card-height, 450px)',
                 borderRadius: 8,
                 overflow: "hidden",
                 margin: 8,
@@ -273,8 +282,8 @@ function ImageCard({
                         position: "relative",
                         zIndex: 1,
                         ...(settings.imageThumbFit === 'height'
-                            ? { maxHeight: cardHeight, width: 'auto', maxWidth: '100%' }
-                            : { maxWidth: cardWidth, width: '100%', height: 'auto' }),
+                            ? { maxHeight: 'var(--gallery-card-height, 450px)', width: 'auto', maxWidth: '100%' }
+                            : { maxWidth: 'var(--gallery-card-width, 350px)', width: '100%', height: 'auto' }),
                         userSelect: 'none',
                         cursor: 'grab',
                     }}
@@ -311,8 +320,8 @@ function ImageCard({
                     ref={videoRef}
                     style={{
                         ...(settings.videoThumbFit === 'height'
-                            ? { maxHeight: cardHeight }
-                            : { maxWidth: cardWidth }),
+                            ? { maxHeight: 'var(--gallery-card-height, 450px)' }
+                            : { maxWidth: 'var(--gallery-card-width, 350px)' }),
                         cursor: "pointer",
                         zIndex: 1,
                     }}
@@ -412,6 +421,16 @@ function ImageCard({
             </div>
         </div>
     </>)
-}
+}, (prev, next) => (
+    prev.image === next.image
+    && prev.dragFolder === next.dragFolder
+    && prev.onInfoClick === next.onInfoClick
+    && prev.onVideoClick === next.onVideoClick
+    && prev.settings === next.settings
+    && prev.selectedSet === next.selectedSet
+    && prev.selectImage === next.selectImage
+    && prev.deleteAssets === next.deleteAssets
+    && prev.setPreviewingVideo === next.setPreviewingVideo
+));
 
 export default ImageCard

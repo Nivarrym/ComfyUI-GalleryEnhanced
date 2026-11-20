@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Flex, AutoComplete, Button, Segmented, Tag, Tooltip, Typography } from 'antd';
 import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons';
 import { useGalleryContext } from './GalleryContext';
 import { useDebounce, useCountDown } from 'ahooks';
+import GallerySizeControl from './GallerySizeControl';
 
-const GalleryHeader = () => {
+const GalleryHeader = memo(function GalleryHeader() {
     const {
         showSettings, setShowSettings,
         setSearchFileName,
@@ -171,7 +172,8 @@ const GalleryHeader = () => {
                         : imagesAutoCompleteNames
                 }
                 style={{
-                    width: '50%'
+                    flex: '1 1 280px',
+                    minWidth: 160,
                 }}
                 onSearch={text => setSearch(text)}
                 value={search}
@@ -181,6 +183,7 @@ const GalleryHeader = () => {
                     clearIcon: <CloseSquareFilled />
                 }}
             />
+            <GallerySizeControl />
             <Segmented<string>
                 style={{
                     marginRight: 8
@@ -191,6 +194,6 @@ const GalleryHeader = () => {
             />
         </Flex>
     );
-};
+});
 
 export default GalleryHeader;

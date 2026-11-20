@@ -100,10 +100,6 @@ export interface GalleryContextType {
     loading: boolean;
     runAsync: () => Promise<any>;
     mutate: (data?: FilesTree | ((oldData?: FilesTree | undefined) => FilesTree | undefined) | undefined) => void;
-    gridSize: { width: number; height: number; columnCount: number; rowCount: number };
-    setGridSize: Dispatch<SetStateAction<{ width: number; height: number; columnCount: number; rowCount: number }>>;
-    autoSizer: { width: number; height: number };
-    setAutoSizer: Dispatch<SetStateAction<{ width: number; height: number }>>;
     imagesDetailsList: FileDetails[];
     selectableImages: FileDetails[];
     imagesUrlsLists: string[];
@@ -115,11 +111,6 @@ export interface GalleryContextType {
     themePreview: boolean | null;
     setThemePreview: Dispatch<SetStateAction<boolean | null>>;
     effectiveDarkMode: boolean;
-    thumbSizePreview: number | null;
-    setThumbSizePreview: Dispatch<SetStateAction<number | null>>;
-    effectiveThumbSize: number;
-    cardWidth: number;
-    cardHeight: number;
     selectedImages: string[];
     selectedSet: Set<string>;
     setSelectedImages: React.Dispatch<React.SetStateAction<string[]>>;
@@ -136,6 +127,36 @@ export interface GalleryContextType {
 }
 
 const GalleryContext = createContext<GalleryContextType | undefined>(undefined);
+
+export interface GalleryLayoutContextType {
+    effectiveThumbSize: number;
+    thumbSizePreview: number | null;
+    setThumbSizePreview: Dispatch<SetStateAction<number | null>>;
+    cardWidth: number;
+    cardHeight: number;
+}
+
+const GalleryLayoutContext = createContext<GalleryLayoutContextType | undefined>(undefined);
+
+/**
+ * Isolated layout state. Keeping the preview size here means dragging the size
+ * slider re-renders only the grid and the slider, not the whole gallery context
+ * (sidebar, header, drag state, etc.).
+ */
+function GalleryLayoutProvider({ thumbSize, children }: { thumbSize: number; children: React.ReactNode }) {
+    const [thumbSizePreview, setThumbSizePreview] = useState<number | null>(null);
+    const effectiveThumbSize = Math.min(600, Math.max(160, thumbSizePreview ?? thumbSize ?? 350));
+    const cardWidth = Math.round(effectiveThumbSize);
+    const cardHeight = Math.round(cardWidth * (450 / 350));
+    const value = useMemo<GalleryLayoutContextType>(() => ({
+        effectiveThumbSize,
+        thumbSizePreview,
+        setThumbSizePreview,
+        cardWidth,
+        cardHeight,
+    }), [effectiveThumbSize, thumbSizePreview, cardWidth, cardHeight]);
+    return <GalleryLayoutContext.Provider value={value}>{children}</GalleryLayoutContext.Provider>;
+}
 
 function mergeSettings(base: SettingsState, incoming: any): SettingsState {
     const merged: SettingsState = { ...base };
@@ -167,7 +188,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [showRawMetadata, setShowRawMetadata] = useState(false);
     const [showPerf, setShowPerf] = useState(false);
     const [themePreview, setThemePreview] = useState<boolean | null>(null);
-    const [thumbSizePreview, setThumbSizePreview] = useState<number | null>(null);
     const [sortMethod, setSortMethod] = useState<'Newest' | 'Oldest' | 'Name ↑' | 'Name ↓'>("Newest");
     const [imageInfoName, setImageInfoName] = useState<string | undefined>(undefined);
     const [open, setOpen] = useState(false);
@@ -179,8 +199,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [dataRevision, setDataRevision] = useState(0);
     const size = useSize(document.querySelector('body'));
     const imagesBoxSize = useSize(document.querySelector('#imagesBox'));
-    const [gridSize, setGridSize] = useState({ width: 1000, height: 600, columnCount: 1, rowCount: 1 });
-    const [autoSizer, setAutoSizer] = useState({ width: 1000, height: 600 });
     const [autoCompleteOptions, setAutoCompleteOptions] = useState<NonNullable<AutoCompleteProps['options']>>([]);
     const [settingsState, setSettings] = useLocalStorageState<SettingsState>(STORAGE_KEY, {
         defaultValue: DEFAULT_SETTINGS,
@@ -189,9 +207,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     const mergedSettings = useMemo<SettingsState>(() => mergeSettings(DEFAULT_SETTINGS, settingsState), [settingsState]);
     const effectiveDarkMode = themePreview ?? !!mergedSettings.darkMode;
-    const effectiveThumbSize = Math.min(600, Math.max(160, thumbSizePreview ?? mergedSettings.thumbSize ?? 350));
-    const cardWidth = Math.round(effectiveThumbSize);
-    const cardHeight = Math.round(cardWidth * (450 / 350));
     const settingsRef = useRef<SettingsState>(mergedSettings);
     const bootstrappedRef = useRef(false);
     const appliedMonitorKeyRef = useRef<string>('');
@@ -391,7 +406,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     // outside the dialog or into the persisted settings.
     useEffect(() => {
         if (!open) setThemePreview(null);
-        if (!open) setThumbSizePreview(null);
     }, [open]);
 
     // Keep the folder tree usable when the selected folder disappears.
@@ -416,40 +430,18 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
             const searchTerm = searchFileName.toLowerCase();
             list = list.filter(imageInfo => imageInfo.name.toLowerCase().includes(searchTerm));
         }
-        if (sortMethod !== 'Name ↑' && sortMethod !== 'Name ↓') {
-            list = list.sort((a, b) => (sortMethod === 'Newest' ? (b.timestamp || 0) - (a.timestamp || 0) : (a.timestamp || 0) - (b.timestamp || 0)));
-            if (!mergedSettings.showDateDivider) return list;
-            const grouped: { [date: string]: FileDetails[] } = {};
-            list.forEach(item => {
-                const date = item.timestamp ? new Date(item.timestamp * 1000).toISOString().slice(0, 10) : 'Unknown';
-                if (!grouped[date]) grouped[date] = [];
-                grouped[date].push(item);
-            });
-            const result: FileDetails[] = [];
-            Object.entries(grouped).forEach(([date, items]) => {
-                const colCount = Math.max(1, gridSize.columnCount || 1);
-                for (let i = 0; i < colCount; i++) {
-                    result.push({ name: date, type: 'divider' } as FileDetails);
-                }
-                result.push(...items);
-                const remainder = items.length % colCount;
-                if (remainder !== 0 && colCount > 1) {
-                    for (let i = 0; i < colCount - remainder; i++) {
-                        result.push({ type: 'empty-space' } as FileDetails);
-                    }
-                }
-            });
-            return result;
-        }
         switch (sortMethod) {
             case 'Name ↑':
                 return list.sort((a, b) => a.name.localeCompare(b.name));
             case 'Name ↓':
                 return list.sort((a, b) => b.name.localeCompare(a.name));
+            case 'Newest':
+                return list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            case 'Oldest':
             default:
-                return list;
+                return list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         }
-    }, [currentFolder, data, sortMethod, searchFileName, gridSize.columnCount, mergedSettings.showDateDivider]);
+    }, [currentFolder, data, sortMethod, searchFileName]);
 
     const selectableImages = useMemo(
         () => imagesDetailsList.filter(image => image.type !== 'divider' && image.type !== 'empty-space'),
@@ -584,7 +576,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     const saveSettings = useCallback((newSettings: SettingsState) => {
         setThemePreview(null);
-        setThumbSizePreview(null);
         setPerfEnabled(FORCE_PERF || !!newSettings.debugPerf);
         setSettings(newSettings);
         ComfyAppApi.saveSettings(newSettings);
@@ -643,8 +634,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         previewingVideo, setPreviewingVideo,
         size, imagesBoxSize,
         data, dataRevision, error, loading, runAsync, mutate,
-        gridSize, setGridSize,
-        autoSizer, setAutoSizer,
         imagesDetailsList,
         selectableImages,
         imagesUrlsLists,
@@ -656,11 +645,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         themePreview,
         setThemePreview,
         effectiveDarkMode,
-        thumbSizePreview,
-        setThumbSizePreview,
-        effectiveThumbSize,
-        cardWidth,
-        cardHeight,
         selectedImages,
         selectedSet,
         setSelectedImages,
@@ -692,8 +676,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         loading,
         runAsync,
         mutate,
-        gridSize,
-        autoSizer,
         imagesDetailsList,
         selectableImages,
         imagesUrlsLists,
@@ -703,10 +685,6 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         saveSettings,
         themePreview,
         effectiveDarkMode,
-        thumbSizePreview,
-        effectiveThumbSize,
-        cardWidth,
-        cardHeight,
         selectedImages,
         selectedSet,
         selectionAnchor,
@@ -720,11 +698,23 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         siderCollapsed,
     ]);
 
-    return <GalleryContext.Provider value={value}>{children}</GalleryContext.Provider>;
+    return (
+        <GalleryContext.Provider value={value}>
+            <GalleryLayoutProvider thumbSize={mergedSettings.thumbSize ?? 350}>
+                {children}
+            </GalleryLayoutProvider>
+        </GalleryContext.Provider>
+    );
 }
 
 export function useGalleryContext() {
     const ctx = useContext(GalleryContext);
     if (!ctx) throw new Error('useGalleryContext must be used within a GalleryProvider');
+    return ctx;
+}
+
+export function useGalleryLayout() {
+    const ctx = useContext(GalleryLayoutContext);
+    if (!ctx) throw new Error('useGalleryLayout must be used within a GalleryProvider');
     return ctx;
 }

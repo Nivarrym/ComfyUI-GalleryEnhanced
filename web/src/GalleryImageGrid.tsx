@@ -1,22 +1,16 @@
-import React, { useMemo, useCallback, useEffect, useRef } from 'react';
-import { Empty, Image, Spin } from 'antd';
-import { AutoSizer } from 'react-virtualized';
-import { VariableSizeGrid } from 'react-window';
-import ImageCard from './ImageCard';
+import React, { useMemo, useCallback, useRef } from 'react';
+import { Image, Spin } from 'antd';
 import { useGalleryContext } from './GalleryContext';
 import { MetadataView } from './MetadataView';
 import { ModelViewer } from './ModelViewer';
-import type { FileDetails } from './types';
-import { BASE_PATH } from "./ComfyAppApi";
+import { BASE_PATH } from './ComfyAppApi';
 import { useBoxSelection } from './useBoxSelection';
 import SelectionToolbar from './SelectionToolbar';
-import GallerySizeControl from './GallerySizeControl';
-import { perfMeasure } from './perf';
+import GalleryGridBody from './GalleryGridBody';
 
 const GalleryImageGrid = () => {
     const {
         data,
-        dataRevision,
         currentFolder,
         settings,
         loading,
@@ -26,20 +20,13 @@ const GalleryImageGrid = () => {
         setPreviewingVideo,
         showRawMetadata,
         setShowRawMetadata,
-        autoSizer,
-        setAutoSizer,
-        gridSize,
-        setGridSize,
         imagesDetailsList,
         imagesUrlsLists,
         selectedImages,
         setSelectedImages,
         clearSelection,
-        cardWidth,
-        cardHeight,
     } = useGalleryContext();
     const containerRef = useRef<HTMLDivElement>(null);
-    const gridRef = useRef<any>(null);
 
     const handleInfoClick = useCallback((imageName: string) => {
         const item = data?.folders?.[currentFolder]?.[imageName];
@@ -58,102 +45,6 @@ const GalleryImageGrid = () => {
         onClear: clearSelection,
         enabled: !previewingVideo,
     });
-
-    const Cell = useCallback(({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
-        const index = rowIndex * gridSize.columnCount + columnIndex;
-        const image = imagesDetailsList[index];
-        if (!image) return null;
-        if (image.type === 'divider') {
-            if (columnIndex !== 0) return null;
-            return (
-                <div
-                    key={`divider-${index}`}
-                    style={{
-                        ...style,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: `calc(${gridSize.columnCount} * ${cardWidth + 16}px)`,
-                        gridColumn: `span ${gridSize.columnCount}`,
-                        background: 'transparent',
-                        padding: 0,
-                        minHeight: 48,
-                        position: 'absolute',
-                        zIndex: 2,
-                        pointerEvents: 'none',
-                    }}
-                >
-                    <div className="gallery-date-divider-label">
-                        <span className="gallery-date-divider-text">{image.name}</span>
-                    </div>
-                </div>
-            );
-        }
-        if (image.type === 'empty-space') {
-            return (
-                <div
-                    key={`empty-space-${index}`}
-                    style={{
-                        ...style,
-                        background: 'transparent'
-                    }}
-                />
-            );
-        }
-        return (
-            <div
-                key={`div-${image.name}`}
-                style={{
-                    ...style,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                }}
-            >
-                <ImageCard
-                    image={{
-                        ...image,
-                        dragFolder: currentFolder
-                    }}
-                    key={image.name}
-                    index={index}
-                    onInfoClick={() => handleInfoClick(image.name)}
-                    onVideoClick={() => setPreviewingVideo(image.name)}
-                />
-            </div>
-        );
-    }, [gridSize.columnCount, imagesDetailsList, handleInfoClick, setPreviewingVideo, currentFolder, cardWidth]);
-
-    const rowHeight = useCallback((index: number) => {
-        const firstCell = imagesDetailsList[index * gridSize.columnCount];
-        return firstCell?.type === 'divider' ? 56 : cardHeight + 16;
-    }, [gridSize.columnCount, imagesDetailsList, cardHeight]);
-
-    useEffect(() => {
-        gridRef.current?.resetAfterIndices?.({ rowIndex: 0, columnIndex: 0, shouldForceUpdate: true });
-    }, [imagesDetailsList, gridSize.columnCount, cardWidth, cardHeight]);
-
-    useEffect(() => {
-        const { width, height } = autoSizer;
-        const columnCount = Math.max(1, Math.floor(width / (cardWidth + 16)));
-        const rowCount = Math.ceil(imagesDetailsList.length / columnCount);
-        if (gridSize.width !== width || gridSize.height !== height || gridSize.columnCount !== columnCount || gridSize.rowCount !== rowCount) {
-            setGridSize({ width, height, columnCount, rowCount });
-        }
-    }, [autoSizer.width, autoSizer.height, imagesDetailsList.length, cardWidth]);
-
-    useEffect(() => {
-        gridRef.current?.scrollToItem({ rowIndex: 0, columnIndex: 0, align: 'start' });
-    }, [currentFolder]);
-
-    useEffect(() => {
-        if (loading || dataRevision === 0) return;
-        const frame = window.requestAnimationFrame(() => {
-            perfMeasure('grid.firstPaint', 'data.ready', { items: imagesDetailsList.length, folder: currentFolder });
-        });
-        return () => window.cancelAnimationFrame(frame);
-        // Only measure a paint triggered by a fresh /Gallery/images response.
-    }, [loading, dataRevision]);
 
     // Memoized previewable images for InfoView navigation and rendering
     const previewableImages = useMemo(() =>
@@ -254,7 +145,13 @@ const GalleryImageGrid = () => {
     }, [setPreviewingVideo, previewableImages]);
 
     return (
-        <div id="imagesBox" className="gallery-grid-root" style={{ width: '100%', height: '100%', position: 'relative' }} ref={containerRef} onPointerDown={onPointerDown}>
+        <div
+            id="imagesBox"
+            className="gallery-grid-root"
+            style={{ width: '100%', height: '100%', position: 'relative' }}
+            ref={containerRef}
+            onPointerDown={onPointerDown}
+        >
             {loading && (
                 <div className="gallery-loading-mask">
                     <Spin size="large" tip="Loading..." />
@@ -278,46 +175,12 @@ const GalleryImageGrid = () => {
                     },
                 }}
             >
-                {imagesDetailsList.length === 0 ? (
-                    <Empty
-                        style={{
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)"
-                        }}
-                        description={"No images found"}
-                    />
-                ) : (
-                    <AutoSizer>
-                        {({ width, height }) => {
-                            if (autoSizer.width !== width || autoSizer.height !== height) {
-                                setTimeout(() => setAutoSizer({ width, height }), 0);
-                            }
-                            return (
-                                <VariableSizeGrid
-                                    ref={gridRef}
-                                    columnCount={gridSize.columnCount}
-                                    rowCount={gridSize.rowCount}
-                                    columnWidth={() => cardWidth + 16}
-                                    rowHeight={rowHeight}
-                                    estimatedRowHeight={cardHeight + 16}
-                                    estimatedColumnWidth={cardWidth + 16}
-                                    width={width}
-                                    height={height}
-                                    className={"grid-element"}
-                                    style={{
-                                        display: "flex",
-                                        alignContent: "center",
-                                        justifyContent: "center"
-                                    }}
-                                >
-                                    {Cell}
-                                </VariableSizeGrid>
-                            );
-                        }}
-                    </AutoSizer>
-                )}
+                <GalleryGridBody
+                    imagesDetailsList={imagesDetailsList}
+                    currentFolder={currentFolder}
+                    onInfoClick={handleInfoClick}
+                    onVideoClick={setPreviewingVideo}
+                />
             </Image.PreviewGroup>
 
             {marquee && (
@@ -333,7 +196,6 @@ const GalleryImageGrid = () => {
             )}
 
             <SelectionToolbar />
-            <GallerySizeControl />
         </div>
     );
 };

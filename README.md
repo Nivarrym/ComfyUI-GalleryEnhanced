@@ -52,7 +52,8 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Expand All Folders (v2.3.1):** Choose whether the folder sidebar tree is fully expanded or collapsed by default, for easier navigation of large folder structures.
 *   **Sidebar (Sider) Toggle (v2.0.0):** Collapse or expand the sidebar for a distraction-free or navigational experience.
 *   **Resizable Sidebar (v2.9.0):** Drag the divider at the right edge of the folder tree to change its width; double-click the divider to reset. The width is remembered.
-*   **Preview Size Slider (v2.9.0):** A slider in the bottom-left corner changes the asset card size (160–600 px) live while dragging; the chosen size is saved.
+*   **Preview Size Slider (v2.9.0):** A compact slider in the top bar, left of the sort control, changes the asset card size (160–600 px) live while dragging; the chosen size is saved.
+*   **Smooth Resizing (v2.10.1):** Slider input is coalesced to one update per frame, thumbnails use a stable request width, grid dimensions are local to the virtualized body, and cards are memoized with CSS-variable sizes.
 *   **Hover to close button (v1.6.0, React version in v2.0.0):** A button appears in the header when dragging an image, allowing you to hover over it to close the gallery (useful for dropping images into your workflow).
 *   **Hotkeys navigation (v1.7.0, React version in v2.0.0):** Simple navigation with ← → arrows and ESC button while viewing images on fullscreen (provided by Ant Design's Image Preview).
 
@@ -124,6 +125,9 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.10.1 (fork):**
+    *   **Resize performance:** preview size updates are frame-coalesced and moved into the header, thumbnails no longer reload within a size bucket, and sidebar dragging is rAF-throttled without re-rendering the tree.
 
 *   **v2.10.0 (fork):**
     *   **Reveal and open:** per-card buttons to select the asset in the host file manager and to open it in the default associated application.

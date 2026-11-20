@@ -9,8 +9,12 @@ is the unmodified 2.7.1 import.
 
 ### Layout: preview size and sidebar width
 
-- **Preview size slider** in the bottom-left corner of the gallery changes card
-  size from 160 to 600 px while dragging (`thumbSize` setting, persisted).
+- **Preview size slider** in the top bar, immediately left of the sort control,
+  changes card size from 160 to 600 px while dragging (`thumbSize` setting,
+  persisted). Slider input is coalesced per animation frame and the grid update
+  runs in a React transition. Grid dimensions live inside the virtualized body,
+  thumbnails use a stable request width, and cards read their size from CSS
+  variables, so a drag does not re-render the sidebar/header or reload previews.
 - **Resizable sidebar**: drag the vertical divider on the right edge of the
   folder tree to resize it (`sidebarWidth` setting, persisted). Double-click the
   divider to reset it to 320 px.

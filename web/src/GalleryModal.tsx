@@ -19,11 +19,21 @@ const GalleryModal = () => {
     const themeClass = galleryThemeClass(effectiveDarkMode);
     const modalWidth = size?.width && size.width > 320 ? size.width : '96vw';
     const [sidebarWidth, setSidebarWidth] = useState(settings.sidebarWidth || 320);
+    const [isResizingSidebar, setIsResizingSidebar] = useState(false);
     const resizeRef = useRef<{ startX: number; startWidth: number; lastWidth: number } | null>(null);
+    const resizeFrameRef = useRef<number | null>(null);
+    const pendingWidthRef = useRef(sidebarWidth);
 
     useEffect(() => {
         setSidebarWidth(settings.sidebarWidth || 320);
     }, [settings.sidebarWidth]);
+
+    useEffect(() => () => {
+        if (resizeFrameRef.current !== null) {
+            window.cancelAnimationFrame(resizeFrameRef.current);
+            resizeFrameRef.current = null;
+        }
+    }, []);
 
     const persistSidebarWidth = (width: number) => {
         setSettings({ ...settings, sidebarWidth: width });
@@ -34,6 +44,8 @@ const GalleryModal = () => {
         event.preventDefault();
         event.stopPropagation();
         resizeRef.current = { startX: event.clientX, startWidth: sidebarWidth, lastWidth: sidebarWidth };
+        pendingWidthRef.current = sidebarWidth;
+        setIsResizingSidebar(true);
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
 
@@ -45,15 +57,27 @@ const GalleryModal = () => {
             if (!drag) return;
             const next = Math.max(MIN_SIDEBAR, Math.min(maxWidth, drag.startWidth + (moveEvent.clientX - drag.startX)));
             drag.lastWidth = next;
-            setSidebarWidth(next);
+            pendingWidthRef.current = next;
+            if (resizeFrameRef.current === null) {
+                resizeFrameRef.current = window.requestAnimationFrame(() => {
+                    resizeFrameRef.current = null;
+                    setSidebarWidth(pendingWidthRef.current);
+                });
+            }
         };
         const onUp = () => {
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
             window.removeEventListener('pointercancel', onUp);
+            if (resizeFrameRef.current !== null) {
+                window.cancelAnimationFrame(resizeFrameRef.current);
+                resizeFrameRef.current = null;
+            }
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
             const finalWidth = resizeRef.current?.lastWidth ?? sidebarWidth;
+            setSidebarWidth(finalWidth);
+            setIsResizingSidebar(false);
             resizeRef.current = null;
             persistSidebarWidth(finalWidth);
         };
@@ -108,6 +132,7 @@ const GalleryModal = () => {
                             scrollbarGutter: 'stable',
                             background: "var(--gallery-bg)",
                             borderRight: '1px solid var(--gallery-border)',
+                            transition: isResizingSidebar ? 'none' : undefined,
                         }}
                     >
                         <GallerySidebar />

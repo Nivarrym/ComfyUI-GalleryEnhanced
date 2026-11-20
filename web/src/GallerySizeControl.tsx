@@ -1,22 +1,49 @@
-import { useEffect, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { Slider, Tooltip } from 'antd';
 import PictureOutlined from '@ant-design/icons/lib/icons/PictureOutlined';
-import { useGalleryContext } from './GalleryContext';
+import { useGalleryContext, useGalleryLayout } from './GalleryContext';
 
 /**
- * Bottom-left preview-size control. Dragging updates the grid immediately via
- * a preview value; the new size is persisted once the drag completes.
+ * Header preview-size control. Slider input is coalesced to one update per
+ * animation frame; the grid update is a React transition so the slider itself
+ * stays responsive. The final size is persisted when the drag completes.
  */
 const GallerySizeControl = () => {
-    const { settings, setSettings, effectiveThumbSize, setThumbSizePreview } = useGalleryContext();
+    const { settings, setSettings } = useGalleryContext();
+    const { effectiveThumbSize, setThumbSizePreview } = useGalleryLayout();
     const [value, setValue] = useState(effectiveThumbSize);
+    const frameRef = useRef<number | null>(null);
+    const pendingRef = useRef(effectiveThumbSize);
 
     useEffect(() => {
         setValue(effectiveThumbSize);
     }, [effectiveThumbSize]);
 
-    const commit = (next: number) => {
-        setSettings({ ...settings, thumbSize: next });
+    useEffect(() => () => {
+        if (frameRef.current !== null) {
+            window.cancelAnimationFrame(frameRef.current);
+            frameRef.current = null;
+        }
+    }, []);
+
+    const applyPreview = (size: number) => {
+        pendingRef.current = size;
+        if (frameRef.current !== null) return;
+        frameRef.current = window.requestAnimationFrame(() => {
+            frameRef.current = null;
+            const next = pendingRef.current;
+            setValue(next);
+            startTransition(() => setThumbSizePreview(next));
+        });
+    };
+
+    const commit = (size: number) => {
+        if (frameRef.current !== null) {
+            window.cancelAnimationFrame(frameRef.current);
+            frameRef.current = null;
+        }
+        setValue(size);
+        setSettings({ ...settings, thumbSize: size });
         setThumbSizePreview(null);
     };
 
@@ -30,14 +57,14 @@ const GallerySizeControl = () => {
                 <PictureOutlined className="gallery-size-icon" />
             </Tooltip>
             <Slider
+                className="gallery-size-slider"
                 min={160}
                 max={600}
                 step={10}
                 value={value}
                 onChange={(next) => {
                     const size = Array.isArray(next) ? next[0] : next;
-                    setValue(size);
-                    setThumbSizePreview(size);
+                    applyPreview(size);
                 }}
                 onChangeComplete={(next) => {
                     const size = Array.isArray(next) ? next[0] : next;
@@ -45,7 +72,6 @@ const GallerySizeControl = () => {
                 }}
                 tooltip={{ formatter: (next) => `${next}px` }}
                 aria-label="Preview size"
-                style={{ width: 160, margin: 0 }}
             />
             <span className="gallery-size-value">{value}px</span>
         </div>

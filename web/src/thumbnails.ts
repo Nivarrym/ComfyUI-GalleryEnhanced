@@ -12,6 +12,13 @@ import type { FileDetails } from './types';
 const MAX_CONCURRENT = 6;
 const MAX_CACHE_ENTRIES = 600;
 
+/**
+ * Grid thumbnails are requested at one stable width. Card resizing then only
+ * scales the already-loaded image instead of triggering a second download for
+ * every size bucket. 600 px still covers the maximum card width.
+ */
+export const GRID_THUMBNAIL_WIDTH = 600;
+
 interface ThumbJob {
     key: string;
     url: string;
@@ -190,7 +197,8 @@ export function useThumbnail(
     src: string | undefined;
     state: ThumbnailState;
 } {
-    const initial = enabled ? getCachedThumbnail(image, width) : undefined;
+    const normalizedWidth = normalizeThumbWidth(width);
+    const initial = enabled ? getCachedThumbnail(image, normalizedWidth) : undefined;
     const [src, setSrc] = useState<string | undefined>(initial);
     const [state, setState] = useState<ThumbnailState>(enabled ? (initial ? 'loaded' : 'loading') : 'error');
 
@@ -201,7 +209,7 @@ export function useThumbnail(
             setState('error');
             return () => { alive = false; };
         }
-        const cached = getCachedThumbnail(image, width);
+        const cached = getCachedThumbnail(image, normalizedWidth);
         if (cached) {
             setSrc(cached);
             setState('loaded');
@@ -209,7 +217,7 @@ export function useThumbnail(
         }
         setSrc(undefined);
         setState('loading');
-        loadThumbnail(image, width)
+        loadThumbnail(image, normalizedWidth)
             .then((objectUrl) => {
                 if (!alive) return;
                 setSrc(objectUrl);
@@ -220,8 +228,9 @@ export function useThumbnail(
                 setState('error');
             });
         return () => { alive = false; };
-        // image.timestamp is part of the cache key and must trigger a reload.
-    }, [image.url, image.timestamp, width, enabled]);
+        // Only the normalized request width matters; resizing within the same
+        // bucket must not restart thumbnail loading.
+    }, [image.url, image.timestamp, normalizedWidth, enabled]);
 
     return { src, state };
 }

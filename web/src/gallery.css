@@ -212,25 +212,22 @@
 }
 
 .gallery-size-control {
-    position: absolute;
-    left: 16px;
-    bottom: 18px;
-    z-index: 40;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 12px;
-    background: var(--gallery-toolbar-bg);
-    border: 1px solid var(--gallery-border-strong);
-    box-shadow: var(--gallery-shadow);
-    backdrop-filter: blur(10px);
+    gap: 7px;
+    flex: 0 0 auto;
     color: var(--gallery-text-secondary);
+    padding: 0 2px;
 }
 
 .gallery-size-icon {
     font-size: 15px;
     color: var(--gallery-text-secondary);
+}
+
+.gallery-size-slider {
+    width: 110px;
+    margin: 0 !important;
 }
 
 .gallery-size-value {
@@ -239,12 +236,6 @@
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     color: var(--gallery-text-secondary);
-}
-
-@media (max-width: 900px) {
-    .gallery-size-control {
-        bottom: 74px;
-    }
 }
 
 .gallery-sider-resizer {
