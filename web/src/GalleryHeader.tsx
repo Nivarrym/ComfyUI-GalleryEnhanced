@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { Flex, AutoComplete, Button, Segmented, Tag, Tooltip, Typography } from 'antd';
-import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons';
-import { useGalleryContext } from './GalleryContext';
+import { Flex, AutoComplete, Button, Segmented, Select, Tag, Tooltip, Typography } from 'antd';
+import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { useGalleryContext, type PageMode } from './GalleryContext';
 import { useDebounce, useCountDown } from 'ahooks';
 import GallerySizeControl from './GallerySizeControl';
 
@@ -15,6 +15,8 @@ const GalleryHeader = memo(function GalleryHeader() {
         setOpen,
         selectedImages,
         setShowPerf,
+        pageMode, setPageMode,
+        pageIndex, setPageIndex, pageCount,
         siderCollapsed, setSiderCollapsed
     } = useGalleryContext();
 
@@ -184,6 +186,36 @@ const GalleryHeader = memo(function GalleryHeader() {
                 }}
             />
             <GallerySizeControl />
+            <Select<PageMode>
+                className="gallery-page-mode"
+                size="small"
+                value={pageMode}
+                onChange={(value) => setPageMode(value)}
+                style={{ width: 132, flex: '0 0 auto' }}
+                options={[
+                    { value: 'endless' as PageMode, label: 'Endless scroll' },
+                    { value: 20 as PageMode, label: '20' },
+                    { value: 40 as PageMode, label: '40' },
+                    { value: 60 as PageMode, label: '60' },
+                    { value: 100 as PageMode, label: '100' },
+                    { value: 200 as PageMode, label: '200' },
+                ]}
+                aria-label="Pagination mode"
+            />
+            <Button
+                size="small"
+                icon={<LeftOutlined />}
+                disabled={pageMode === 'endless' || pageIndex <= 0}
+                onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
+                aria-label="Previous page"
+            />
+            <Button
+                size="small"
+                icon={<RightOutlined />}
+                disabled={pageMode === 'endless' || pageIndex >= pageCount - 1}
+                onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))}
+                aria-label="Next page"
+            />
             <Segmented<string>
                 style={{
                     marginRight: 8

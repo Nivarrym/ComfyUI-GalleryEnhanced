@@ -42,7 +42,7 @@ function intersects(a: DOMRect, b: { left: number; top: number; right: number; b
  *
  * Starts only on the background (not on a card/button/input), draws a marquee
  * in container coordinates, selects mounted cards intersecting it, supports
- * Ctrl/Cmd as additive, and auto-scrolls the react-window scroller near edges.
+ * Ctrl/Cmd as additive, and auto-scrolls the gallery scroller near edges.
  */
 export function useBoxSelection({
     containerRef,
@@ -119,8 +119,9 @@ export function useBoxSelection({
     const scrollParent = useCallback((): HTMLElement | null => {
         const container = containerRef.current;
         if (!container) return null;
-        const grid = container.querySelector<HTMLElement>('.grid-element');
-        if (grid && grid.scrollHeight > grid.clientHeight) return grid;
+        const scroller = container.querySelector<HTMLElement>('.gallery-scroll')
+            ?? container.querySelector<HTMLElement>('.grid-element');
+        if (scroller && scroller.scrollHeight > scroller.clientHeight) return scroller;
         return null;
     }, [containerRef]);
 

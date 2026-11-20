@@ -7,14 +7,17 @@ is the unmodified 2.7.1 import.
 
 ## New features
 
-### Layout: preview size and sidebar width
+### Layout: preview size, sidebar and pagination
 
 - **Preview size slider** in the top bar, immediately left of the sort control,
   changes card size from 160 to 600 px while dragging (`thumbSize` setting,
-  persisted). Slider input is coalesced per animation frame and the grid update
-  runs in a React transition. Grid dimensions live inside the virtualized body,
-  thumbnails use a stable request width, and cards read their size from CSS
-  variables, so a drag does not re-render the sidebar/header or reload previews.
+  persisted). The drag only updates CSS variables; the CSS grid reflows natively
+  and no React card is re-rendered.
+- **Pagination** next to the slider: `Endless scroll`, `20`, `40`, `60`, `100`,
+  `200`. In fixed modes the arrow buttons move between pages; in endless mode
+  they are disabled.
+- **Endless scroll** mounts cards in batches and requests thumbnails only for
+  cards within the viewport plus roughly two rows above/below.
 - **Resizable sidebar**: drag the vertical divider on the right edge of the
   folder tree to resize it (`sidebarWidth` setting, persisted). Double-click the
   divider to reset it to 320 px.
@@ -70,9 +73,9 @@ is the unmodified 2.7.1 import.
   cached WebP previews (Pillow, EXIF orientation baked in, atomic disk cache).
   The grid never downloads full-resolution originals; the original is loaded
   only when the preview opens.
-- **Paged preview loading** on the client: a queue with 6 concurrent requests,
-  object-URL cache, fallback to the original on error, and virtualized mounting
-  from `react-window`.
+- **Paged preview loading** on the client: thumbnails are requested only for
+  cards near the viewport (plus two rows), with a stable 600 px request width,
+  object-URL cache and fallback to the original on error.
 - **Video hover previews**: hovering a video card plays it looped. Hold
   **Shift** while hovering to hear the audio; releasing Shift mutes it again.
   Leaving the card pauses the preview.
@@ -106,9 +109,11 @@ real static root (realpath containment, no `..`, no absolute escapes).
 ## Settings
 
 - `thumbSize` (default `350`) — asset card width in pixels (160–600), changed by
-  the bottom slider.
+  the top-bar slider.
 - `sidebarWidth` (default `320`) — folder tree width in pixels, changed by
   dragging its divider.
+- `pageMode` (default `endless`) — `endless`, `20`, `40`, `60`, `100` or `200`
+  cards per page.
 - `debugPerf` (default `false`) — verbose client/server performance logging.
 - `autoPlayVideos` now means “play videos on hover” (the grid never autoplays
   every visible video at once).

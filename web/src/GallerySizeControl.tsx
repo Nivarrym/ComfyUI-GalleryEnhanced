@@ -1,23 +1,22 @@
-import { startTransition, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Slider, Tooltip } from 'antd';
 import PictureOutlined from '@ant-design/icons/lib/icons/PictureOutlined';
-import { useGalleryContext, useGalleryLayout } from './GalleryContext';
+import { useGalleryContext } from './GalleryContext';
 
 /**
- * Header preview-size control. Slider input is coalesced to one update per
- * animation frame; the grid update is a React transition so the slider itself
- * stays responsive. The final size is persisted when the drag completes.
+ * Header preview-size control. During a drag it only updates CSS variables on
+ * the grid, so the browser reflows natively without React re-rendering cards.
+ * The final size is persisted when the drag completes.
  */
 const GallerySizeControl = () => {
     const { settings, setSettings } = useGalleryContext();
-    const { effectiveThumbSize, setThumbSizePreview } = useGalleryLayout();
-    const [value, setValue] = useState(effectiveThumbSize);
+    const [value, setValue] = useState(settings.thumbSize ?? 350);
     const frameRef = useRef<number | null>(null);
-    const pendingRef = useRef(effectiveThumbSize);
+    const pendingRef = useRef(value);
 
     useEffect(() => {
-        setValue(effectiveThumbSize);
-    }, [effectiveThumbSize]);
+        setValue(settings.thumbSize ?? 350);
+    }, [settings.thumbSize]);
 
     useEffect(() => () => {
         if (frameRef.current !== null) {
@@ -26,14 +25,21 @@ const GallerySizeControl = () => {
         }
     }, []);
 
-    const applyPreview = (size: number) => {
+    const applySize = (size: number) => {
+        const grid = document.querySelector<HTMLElement>('.gallery-grid-body');
+        if (grid) {
+            grid.style.setProperty('--gallery-card-width', `${size}px`);
+            grid.style.setProperty('--gallery-card-height', `${Math.round(size * (450 / 350))}px`);
+        }
+        setValue(size);
+    };
+
+    const schedule = (size: number) => {
         pendingRef.current = size;
         if (frameRef.current !== null) return;
         frameRef.current = window.requestAnimationFrame(() => {
             frameRef.current = null;
-            const next = pendingRef.current;
-            setValue(next);
-            startTransition(() => setThumbSizePreview(next));
+            applySize(pendingRef.current);
         });
     };
 
@@ -42,9 +48,8 @@ const GallerySizeControl = () => {
             window.cancelAnimationFrame(frameRef.current);
             frameRef.current = null;
         }
-        setValue(size);
+        applySize(size);
         setSettings({ ...settings, thumbSize: size });
-        setThumbSizePreview(null);
     };
 
     return (
@@ -64,7 +69,7 @@ const GallerySizeControl = () => {
                 value={value}
                 onChange={(next) => {
                     const size = Array.isArray(next) ? next[0] : next;
-                    applyPreview(size);
+                    schedule(size);
                 }}
                 onChangeComplete={(next) => {
                     const size = Array.isArray(next) ? next[0] : next;

@@ -98,9 +98,33 @@ const ImageCard = memo(function ImageCard({
     const [videoMuted, setVideoMuted] = useState(true);
     const [videoHovered, setVideoHovered] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, GRID_THUMBNAIL_WIDTH, image.type === 'image');
+    const [nearViewport, setNearViewport] = useState(false);
+    const thumbEnabled = image.type === 'image' && nearViewport;
+    const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, GRID_THUMBNAIL_WIDTH, thumbEnabled);
     const originalSrc = `${BASE_PATH}${image.url}`;
     const selected = selectedSet.has(image.url);
+
+    // Load the asset only when it is on screen plus roughly two rows above and
+    // below. Off-screen cards keep a placeholder and stay cheap to paint.
+    useEffect(() => {
+        const element = dragRef.current;
+        if (!element) return;
+        const root = element.closest('.gallery-scroll') as HTMLElement | null;
+        if (!root) {
+            setNearViewport(true);
+            return;
+        }
+        const height = element.getBoundingClientRect().height || 450;
+        const observer = new IntersectionObserver(([entry]) => {
+            setNearViewport(entry.isIntersecting);
+        }, {
+            root,
+            rootMargin: `${Math.round(height * 2 + 32)}px 0px`,
+            threshold: 0,
+        });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [image.url, image.type]);
 
     // Shift toggles the sound of the hovered looping video. Track Shift while
     // the pointer stays on the card so keydown/keyup both work.
@@ -247,7 +271,10 @@ const ImageCard = memo(function ImageCard({
         document.getElementById(image.url)?.click();
     };
 
-    const imageSrc = thumbnailSrc ?? (thumbnailState === 'error' ? originalSrc : TRANSPARENT_PIXEL);
+    const imageSrc = !thumbEnabled
+        ? TRANSPARENT_PIXEL
+        : (thumbnailSrc ?? (thumbnailState === 'error' ? originalSrc : TRANSPARENT_PIXEL));
+    const showThumbPlaceholder = image.type === 'image' && (!thumbEnabled || thumbnailState === 'loading');
 
     return (<>
         <div
@@ -259,7 +286,7 @@ const ImageCard = memo(function ImageCard({
                 height: 'var(--gallery-card-height, 450px)',
                 borderRadius: 8,
                 overflow: "hidden",
-                margin: 8,
+                margin: 0,
                 opacity: dragging ? 0.5 : 1,
                 display: "flex",
                 alignContent: "center",
@@ -274,7 +301,7 @@ const ImageCard = memo(function ImageCard({
             onMouseLeave={handleCardMouseLeave}
         >
             {image.type == "image" ? (<>
-                {thumbnailState === 'loading' && <div className="gallery-thumb-placeholder" />}
+                {showThumbPlaceholder && <div className="gallery-thumb-placeholder" />}
                 <Image
                     id={image.url}
                     style={{
@@ -305,7 +332,7 @@ const ImageCard = memo(function ImageCard({
                     <Typography.Text style={{ marginBottom: '16px', padding: '0 16px', textAlign: 'center', maxWidth: '100%' }} ellipsis>
                         {image.name}
                     </Typography.Text>
-                    <audio controls preload="none" style={{ width: '90%', height: '40px' }} src={originalSrc} onClick={(e) => e.stopPropagation()} />
+                    <audio controls preload="none" style={{ width: '90%', height: '40px' }} src={nearViewport ? originalSrc : undefined} onClick={(e) => e.stopPropagation()} />
                     <Image
                         id={image.url}
                         style={{ display: 'none' }}
@@ -325,7 +352,7 @@ const ImageCard = memo(function ImageCard({
                         cursor: "pointer",
                         zIndex: 1,
                     }}
-                    src={originalSrc}
+                    src={nearViewport ? originalSrc : undefined}
                     loop
                     muted={videoMuted}
                     playsInline

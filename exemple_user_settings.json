@@ -18,5 +18,6 @@
     "deduplicateSymlinks": null,
     "debugPerf": null,
     "thumbSize": null,
-    "sidebarWidth": null
+    "sidebarWidth": null,
+    "pageMode": null
 }

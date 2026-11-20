@@ -10,6 +10,8 @@ import type { FileDetails, FilesTree } from './types';
 import { hasMetadata } from './types';
 import { perfMark, perfMeasure, setPerfEnabled } from './perf';
 
+export type PageMode = 'endless' | 20 | 40 | 60 | 100 | 200;
+
 export interface SettingsState {
     relativePath: string;
     buttonBoxQuery: string;
@@ -30,6 +32,7 @@ export interface SettingsState {
     debugPerf: boolean;
     thumbSize: number;
     sidebarWidth: number;
+    pageMode: PageMode;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -52,6 +55,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
     debugPerf: false,
     thumbSize: 350,
     sidebarWidth: 320,
+    pageMode: 'endless',
 };
 
 export const STORAGE_KEY = 'comfy-ui-gallery-settings';
@@ -111,6 +115,11 @@ export interface GalleryContextType {
     themePreview: boolean | null;
     setThemePreview: Dispatch<SetStateAction<boolean | null>>;
     effectiveDarkMode: boolean;
+    pageMode: PageMode;
+    setPageMode: (mode: PageMode) => void;
+    pageIndex: number;
+    setPageIndex: Dispatch<SetStateAction<number>>;
+    pageCount: number;
     selectedImages: string[];
     selectedSet: Set<string>;
     setSelectedImages: React.Dispatch<React.SetStateAction<string[]>>;
@@ -127,36 +136,6 @@ export interface GalleryContextType {
 }
 
 const GalleryContext = createContext<GalleryContextType | undefined>(undefined);
-
-export interface GalleryLayoutContextType {
-    effectiveThumbSize: number;
-    thumbSizePreview: number | null;
-    setThumbSizePreview: Dispatch<SetStateAction<number | null>>;
-    cardWidth: number;
-    cardHeight: number;
-}
-
-const GalleryLayoutContext = createContext<GalleryLayoutContextType | undefined>(undefined);
-
-/**
- * Isolated layout state. Keeping the preview size here means dragging the size
- * slider re-renders only the grid and the slider, not the whole gallery context
- * (sidebar, header, drag state, etc.).
- */
-function GalleryLayoutProvider({ thumbSize, children }: { thumbSize: number; children: React.ReactNode }) {
-    const [thumbSizePreview, setThumbSizePreview] = useState<number | null>(null);
-    const effectiveThumbSize = Math.min(600, Math.max(160, thumbSizePreview ?? thumbSize ?? 350));
-    const cardWidth = Math.round(effectiveThumbSize);
-    const cardHeight = Math.round(cardWidth * (450 / 350));
-    const value = useMemo<GalleryLayoutContextType>(() => ({
-        effectiveThumbSize,
-        thumbSizePreview,
-        setThumbSizePreview,
-        cardWidth,
-        cardHeight,
-    }), [effectiveThumbSize, thumbSizePreview, cardWidth, cardHeight]);
-    return <GalleryLayoutContext.Provider value={value}>{children}</GalleryLayoutContext.Provider>;
-}
 
 function mergeSettings(base: SettingsState, incoming: any): SettingsState {
     const merged: SettingsState = { ...base };
@@ -189,6 +168,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [showPerf, setShowPerf] = useState(false);
     const [themePreview, setThemePreview] = useState<boolean | null>(null);
     const [sortMethod, setSortMethod] = useState<'Newest' | 'Oldest' | 'Name ↑' | 'Name ↓'>("Newest");
+    const [pageIndex, setPageIndex] = useState(0);
     const [imageInfoName, setImageInfoName] = useState<string | undefined>(undefined);
     const [open, setOpen] = useState(false);
     const [previewingVideo, setPreviewingVideo] = useState<string | undefined>(undefined);
@@ -443,6 +423,19 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentFolder, data, sortMethod, searchFileName]);
 
+    const pageMode: PageMode = mergedSettings.pageMode ?? 'endless';
+    const pageCount = pageMode === 'endless'
+        ? 1
+        : Math.max(1, Math.ceil(imagesDetailsList.length / pageMode));
+
+    useEffect(() => {
+        setPageIndex(0);
+    }, [currentFolder, searchFileName, sortMethod, pageMode]);
+
+    useEffect(() => {
+        setPageIndex((index) => Math.min(index, pageCount - 1));
+    }, [pageCount]);
+
     const selectableImages = useMemo(
         () => imagesDetailsList.filter(image => image.type !== 'divider' && image.type !== 'empty-space'),
         [imagesDetailsList]
@@ -581,6 +574,11 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         ComfyAppApi.saveSettings(newSettings);
     }, [setSettings]);
 
+    const setPageMode = useCallback((mode: PageMode) => {
+        setPageIndex(0);
+        saveSettings({ ...settingsRef.current, pageMode: mode });
+    }, [saveSettings]);
+
     useEventListener('keydown', (event: KeyboardEvent) => {
         const target = event.target as HTMLElement | null;
         const typing = !!target?.closest('input, textarea, select, [contenteditable="true"]');
@@ -645,6 +643,11 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         themePreview,
         setThemePreview,
         effectiveDarkMode,
+        pageMode,
+        setPageMode,
+        pageIndex,
+        setPageIndex,
+        pageCount,
         selectedImages,
         selectedSet,
         setSelectedImages,
@@ -685,6 +688,10 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         saveSettings,
         themePreview,
         effectiveDarkMode,
+        pageMode,
+        setPageMode,
+        pageIndex,
+        pageCount,
         selectedImages,
         selectedSet,
         selectionAnchor,
@@ -700,9 +707,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <GalleryContext.Provider value={value}>
-            <GalleryLayoutProvider thumbSize={mergedSettings.thumbSize ?? 350}>
-                {children}
-            </GalleryLayoutProvider>
+            {children}
         </GalleryContext.Provider>
     );
 }
@@ -710,11 +715,5 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 export function useGalleryContext() {
     const ctx = useContext(GalleryContext);
     if (!ctx) throw new Error('useGalleryContext must be used within a GalleryProvider');
-    return ctx;
-}
-
-export function useGalleryLayout() {
-    const ctx = useContext(GalleryLayoutContext);
-    if (!ctx) throw new Error('useGalleryLayout must be used within a GalleryProvider');
     return ctx;
 }
