@@ -18,6 +18,8 @@ export interface FileDetails {
     date: string;
     metadata: Metadata;
     type: "image" | "media" | "audio" | "3d" | "divider" | "empty-space";
+    /** Per-file revision token (mtime_ns-size) used to bust browser caches. */
+    version?: string;
 }
 
 /** True when an asset has real metadata (lazy loading returns `{}` initially). */

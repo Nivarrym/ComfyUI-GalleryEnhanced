@@ -180,6 +180,11 @@ async def get_gallery_images(request):
         relative_path = raw_rel
 
     full_monitor_path = _resolve_images_root(relative_path)
+    force_refresh = request.rel_url.query.get("refresh") == "1"
+    if force_refresh:
+        # Opening the gallery asks for a fresh listing, even if the short TTL
+        # cache still holds the pre-generation scan.
+        scan_service.invalidate(None)
 
     saved = load_settings()
     scan_extensions = saved.get('scanExtensions') or DEFAULT_EXTENSIONS

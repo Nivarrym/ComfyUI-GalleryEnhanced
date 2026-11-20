@@ -183,8 +183,8 @@ export const ComfyAppApi = {
         app.api.fetchApi("/Gallery/monitor/stop", {
             method: "POST"
         }),
-    fetchImages: (relativePath?: string) =>
-        app.api.fetchApi(`/Gallery/images?relative_path=${encodeURIComponent(relativePath ?? './')}`, { cache: 'no-store' }),
+    fetchImages: (relativePath?: string, refresh = false) =>
+        app.api.fetchApi(`/Gallery/images?relative_path=${encodeURIComponent(relativePath ?? './')}${refresh ? '&refresh=1' : ''}`, { cache: 'no-store' }),
     fetchMetadata: async (imageUrl: string) => {
         const response = await app.api.fetchApi(`/Gallery/metadata?path=${encodeURIComponent(imageUrl)}`, { cache: 'no-store' });
         if (!response.ok) {

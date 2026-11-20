@@ -12,7 +12,8 @@ import { useDrag } from 'ahooks';
 import type { Dispatch, SetStateAction } from 'react';
 import type { DeleteResult } from './ComfyAppApi';
 import type { SettingsState, SelectionModifiers } from './GalleryContext';
-import { BASE_PATH, ComfyAppApi } from './ComfyAppApi';
+import { ComfyAppApi } from './ComfyAppApi';
+import { assetUrl } from './assetUrls';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import { GRID_THUMBNAIL_WIDTH, useThumbnail } from './thumbnails';
 
@@ -21,7 +22,7 @@ const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAE
 const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick: () => void }) => {
     const typeMatch = image.url.match(/\.([^.]+)$/);
     const type = typeMatch ? typeMatch[1].toLowerCase() : '';
-    const thumbnail = use3DThumbnail(`${BASE_PATH}${image.url}`, type);
+    const thumbnail = use3DThumbnail(assetUrl(image), type);
 
     if (thumbnail) {
         return (
@@ -44,7 +45,7 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
                     id={image.url}
                     style={{ display: 'none' }}
                     src={TRANSPARENT_PIXEL}
-                    preview={{ src: `${BASE_PATH}${image.url}` }}
+                    preview={{ src: assetUrl(image) }}
                 />
             </>
         );
@@ -63,7 +64,7 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
                 id={image.url}
                 style={{ display: 'none' }}
                 src={TRANSPARENT_PIXEL}
-                preview={{ src: `${BASE_PATH}${image.url}` }}
+                preview={{ src: assetUrl(image) }}
             />
         </div>
     );
@@ -101,7 +102,7 @@ const ImageCard = memo(function ImageCard({
     const [nearViewport, setNearViewport] = useState(false);
     const thumbEnabled = image.type === 'image' && nearViewport;
     const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, GRID_THUMBNAIL_WIDTH, thumbEnabled);
-    const originalSrc = `${BASE_PATH}${image.url}`;
+    const originalSrc = assetUrl(image);
     const selected = selectedSet.has(image.url);
 
     // Load the asset only when it is on screen plus roughly two rows above and
@@ -262,8 +263,8 @@ const ImageCard = memo(function ImageCard({
         // Fallback to previous simple heuristic if we couldn't guess from extension
         const mimeType = guessed || (image.type === 'image' ? 'image/png' : image.type === 'audio' ? 'audio/wav' : 'video/mp4');
 
-        event.dataTransfer.setData('text/uri-list', `${BASE_PATH}${image.url}`);
-        event.dataTransfer.setData('DownloadURL', `${mimeType}:${image.name}:${window.location.origin + BASE_PATH + image.url}`);
+        event.dataTransfer.setData('text/uri-list', assetUrl(image));
+        event.dataTransfer.setData('DownloadURL', `${mimeType}:${image.name}:${window.location.origin + assetUrl(image)}`);
     };
 
     const openPreview = () => {

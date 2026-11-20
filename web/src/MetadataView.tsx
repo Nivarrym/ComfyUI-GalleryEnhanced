@@ -5,7 +5,8 @@ import type { FileDetails, Metadata } from './types';
 import { hasMetadata } from './types';
 import ReactJsonView from '@microlink/react-json-view';
 import Modal from 'antd/es/modal/Modal';
-import { ComfyAppApi, BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
+import { ComfyAppApi, BASE_Z_INDEX } from './ComfyAppApi';
+import { assetUrl } from './assetUrls';
 import { useGalleryContext } from './GalleryContext';
 import Card from 'antd/es/card/Card';
 import CopyOutlined from '@ant-design/icons/lib/icons/CopyOutlined';
@@ -144,7 +145,7 @@ export function MetadataView({
         try {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
-            img.src = `${BASE_PATH}${image.url}`;
+            img.src = assetUrl(image);
             img.onload = async () => {
                 const canvas = document.createElement('canvas');
                 canvas.width = img.width;
@@ -181,7 +182,7 @@ export function MetadataView({
     // Memoize download handler using FileSaver.js
     const handleDownload = useCallback(async () => {
         try {
-            const response = await fetch(`${BASE_PATH}${image.url}`, { mode: 'cors' });
+            const response = await fetch(assetUrl(image), { mode: 'cors' });
             if (!response.ok) throw new Error('Network response was not ok');
             const blob = await response.blob();
             saveAs(blob, image.name);
@@ -302,7 +303,7 @@ export function MetadataView({
                                         try {
                                             const img = new window.Image();
                                             img.crossOrigin = 'anonymous';
-                                            img.src = `${BASE_PATH}${image.url}`;
+                                            img.src = assetUrl(image);
                                             img.onload = async () => {
                                                 const canvas = document.createElement('canvas');
                                                 canvas.width = img.width;
@@ -365,7 +366,7 @@ export function MetadataView({
                                 borderRadius: 12,
                                 background: token.colorBgElevated,
                             }}
-                            src={`${BASE_PATH}${image.url}`}
+                            src={assetUrl(image)}
                             loading="lazy"
                         />
                     )}
@@ -378,7 +379,7 @@ export function MetadataView({
                                 borderRadius: 12,
                                 background: token.colorBgElevated,
                             }}
-                            src={`${BASE_PATH}${image.url}`}
+                            src={assetUrl(image)}
                             autoPlay={true}
                             controls={true}
                             preload="none"
@@ -389,7 +390,7 @@ export function MetadataView({
                             <SoundOutlined style={{ fontSize: '100px', color: token.colorPrimary, marginBottom: '40px' }} />
                             <audio
                                 style={{ width: '80%' }}
-                                src={`${BASE_PATH}${image.url}`}
+                                src={assetUrl(image)}
                                 autoPlay={true}
                                 controls={true}
                                 preload="none"
@@ -402,7 +403,7 @@ export function MetadataView({
                             onMouseDown={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
                         >
-                            <ModelViewer url={`${BASE_PATH}${image.url}`} type={image.name.split('.').pop()?.toLowerCase() || ''} />
+                            <ModelViewer url={assetUrl(image)} type={image.name.split('.').pop()?.toLowerCase() || ''} />
                         </div>
                     )}
                 </div>

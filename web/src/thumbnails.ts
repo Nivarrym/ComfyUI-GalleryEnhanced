@@ -49,14 +49,16 @@ export function normalizeThumbWidth(width: number): number {
     return buckets.find((bucket) => deviceWidth <= bucket) ?? 800;
 }
 
-export function thumbnailUrl(image: Pick<FileDetails, 'url' | 'timestamp'>, width: number): string {
+import { assetVersion } from './assetUrls';
+
+export function thumbnailUrl(image: Pick<FileDetails, 'url' | 'timestamp' | 'version'>, width: number): string {
     const w = normalizeThumbWidth(width);
-    const version = Math.round(image.timestamp || 0);
-    return `${BASE_PATH}/Gallery/thumbnail?path=${encodeURIComponent(image.url)}&w=${w}&v=${version}`;
+    const version = assetVersion(image);
+    return `${BASE_PATH}/Gallery/thumbnail?path=${encodeURIComponent(image.url)}&w=${w}&v=${encodeURIComponent(version)}`;
 }
 
-function cacheKey(image: Pick<FileDetails, 'url' | 'timestamp'>, width: number): string {
-    return `${image.url}|${normalizeThumbWidth(width)}|${Math.round(image.timestamp || 0)}`;
+function cacheKey(image: Pick<FileDetails, 'url' | 'timestamp' | 'version'>, width: number): string {
+    return `${image.url}|${normalizeThumbWidth(width)}|${assetVersion(image)}`;
 }
 
 function trimCache(): void {
@@ -111,11 +113,11 @@ function pump(): void {
     }
 }
 
-export function getCachedThumbnail(image: Pick<FileDetails, 'url' | 'timestamp'>, width: number): string | undefined {
+export function getCachedThumbnail(image: Pick<FileDetails, 'url' | 'timestamp' | 'version'>, width: number): string | undefined {
     return cache.get(cacheKey(image, width));
 }
 
-export function loadThumbnail(image: Pick<FileDetails, 'url' | 'timestamp'>, width: number): Promise<string> {
+export function loadThumbnail(image: Pick<FileDetails, 'url' | 'timestamp' | 'version'>, width: number): Promise<string> {
     const key = cacheKey(image, width);
     const cached = cache.get(key);
     if (cached) return Promise.resolve(cached);
@@ -190,7 +192,7 @@ export type ThumbnailState = 'loading' | 'loaded' | 'error';
  * tracks the state of one asset and falls back to the original on error.
  */
 export function useThumbnail(
-    image: Pick<FileDetails, 'url' | 'timestamp'>,
+    image: Pick<FileDetails, 'url' | 'timestamp' | 'version'>,
     width: number,
     enabled: boolean = true
 ): {
@@ -230,7 +232,7 @@ export function useThumbnail(
         return () => { alive = false; };
         // Only the normalized request width matters; resizing within the same
         // bucket must not restart thumbnail loading.
-    }, [image.url, image.timestamp, normalizedWidth, enabled]);
+    }, [image.url, image.timestamp, image.version, normalizedWidth, enabled]);
 
     return { src, state };
 }

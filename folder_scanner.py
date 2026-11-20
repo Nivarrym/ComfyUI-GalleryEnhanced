@@ -126,7 +126,11 @@ def _scan_for_images(
                             "timestamp": timestamp,
                             "date": date_str,
                             "metadata": {},  # Placeholder — filled in parallel below
-                            "type": file_type
+                            "type": file_type,
+                            # mtime_ns + size changes when a file is replaced. The
+                            # client appends this to asset/thumbnail URLs so a
+                            # reused filename never serves a stale browser cache.
+                            "version": f"{getattr(stat, 'st_mtime_ns', int(timestamp * 1_000_000_000))}-{stat.st_size}",
                         }
 
                         # Queue metadata extraction for images (the slow part),

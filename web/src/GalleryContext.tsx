@@ -5,9 +5,10 @@ import useRequest from 'ahooks/lib/useRequest/src/useRequest';
 import { useEventListener, useLocalStorageState } from 'ahooks';
 import type { AutoCompleteProps } from 'antd/es/auto-complete';
 import type { DeleteResult } from './ComfyAppApi';
-import { ComfyAppApi, BASE_PATH, OPEN_BUTTON_ID } from './ComfyAppApi';
+import { ComfyAppApi, OPEN_BUTTON_ID } from './ComfyAppApi';
 import type { FileDetails, FilesTree } from './types';
 import { hasMetadata } from './types';
+import { assetUrl } from './assetUrls';
 import { perfMark, perfMeasure, setPerfEnabled } from './perf';
 
 export type PageMode = 'endless' | 20 | 40 | 60 | 100 | 200;
@@ -189,6 +190,8 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const effectiveDarkMode = themePreview ?? !!mergedSettings.darkMode;
     const settingsRef = useRef<SettingsState>(mergedSettings);
     const bootstrappedRef = useRef(false);
+    const forceRefreshRef = useRef(false);
+    const openRefreshRef = useRef(false);
     const appliedMonitorKeyRef = useRef<string>('');
     const anchorRef = useRef<string | undefined>(undefined);
 
@@ -204,7 +207,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         const start = perfMark('images.fetch.start');
         const relativePath = settingsRef.current.relativePath;
         try {
-            const request = await ComfyAppApi.fetchImages(relativePath);
+            const forceRefresh = forceRefreshRef.current;
+            forceRefreshRef.current = false;
+            const request = await ComfyAppApi.fetchImages(relativePath, forceRefresh);
             const scanMs = Number(request.headers?.get('X-Gallery-Scan-Ms') ?? NaN);
             const cache = request.headers?.get('X-Gallery-Scan-Cache') ?? undefined;
             const files = Number(request.headers?.get('X-Gallery-File-Count') ?? NaN);
@@ -382,6 +387,22 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         setPerfEnabled(FORCE_PERF || !!mergedSettings.debugPerf);
     }, [mergedSettings.debugPerf]);
 
+    // A monolithic SPA may keep the gallery mounted for hours. Re-read the
+    // listing whenever it is opened so newly generated files and deletions are
+    // visible even if a monitor event was missed.
+    useEffect(() => {
+        if (!open) {
+            openRefreshRef.current = false;
+            return;
+        }
+        if (!bootstrappedRef.current || openRefreshRef.current) return;
+        openRefreshRef.current = true;
+        forceRefreshRef.current = true;
+        runAsync().catch((refreshError: unknown) => {
+            console.warn('Gallery: failed to refresh on open', refreshError);
+        });
+    }, [open, runAsync]);
+
     // A theme toggle in the settings dialog is a live preview; never leak it
     // outside the dialog or into the persisted settings.
     useEffect(() => {
@@ -444,7 +465,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const selectedSet = useMemo(() => new Set(selectedImages), [selectedImages]);
 
     const imagesUrlsLists = useMemo(
-        () => selectableImages.map(image => `${BASE_PATH}${image.url}`),
+        () => selectableImages.map(image => assetUrl(image)),
         [selectableImages]
     );
 

@@ -129,6 +129,10 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.12.1 (fork):**
+    *   **Fresh previews:** asset and thumbnail URLs now include a per-file revision (`mtime_ns-size`), so reused output filenames can no longer serve a deleted old image from the browser cache.
+    *   **Fresh listing on open:** opening the gallery forces a scan refresh; deleted files disappear and newly generated files appear immediately.
+
 *   **v2.12.0 (fork):**
     *   **Name sorting:** replaced the duplicate `Name ↑` / `Name ↓` segments with one `Name` segment whose arrow toggles direction.
     *   **Settings redesign:** compact two-column sections, shorter switches and fields; theme toggle now shows sun/moon icons.

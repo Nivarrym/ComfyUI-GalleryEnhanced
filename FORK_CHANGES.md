@@ -69,6 +69,13 @@ is the unmodified 2.7.1 import.
 
 ### Performance and diagnostics
 
+- Per-file revision token (`mtime_ns-size`) is added to preview, video, audio,
+  model and thumbnail URLs. ComfyUI reuses output filenames after the output
+  folder is emptied; without the token the browser's immutable thumbnail cache
+  and the static route could show the deleted file's bytes.
+- Opening the gallery sends `refresh=1`, invalidating the short scan cache so a
+  newly generated file appears without waiting for the TTL.
+
 - `/Gallery/images` no longer opens every image. It performs a directory walk +
   `stat` only, runs off the aiohttp event loop (`asyncio.to_thread`), and is
   backed by a single-flight + TTL scan cache. Concurrent startup requests
