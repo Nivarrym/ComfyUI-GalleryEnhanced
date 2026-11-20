@@ -47,6 +47,17 @@ is the unmodified 2.7.1 import.
 - **Per-card trash button** appears in the top-right corner on hover/focus and
   deletes that one asset after a compact confirmation.
 
+### Unload Models node
+
+- New `Unload Models` output node in `utils`.
+- Calls `comfy.model_management.unload_all_models()` and
+  `soft_empty_cache(force=True)`; falls back for older ComfyUI versions without
+  the `force` argument.
+- No required inputs; an optional wildcard `trigger` input can be connected when
+  the unload must run after a particular loader.
+- `IS_CHANGED` always returns `NaN`, so the output node runs on every queue even
+  though it has no inputs.
+
 ### Sorting and settings
 
 - One `Name` sort segment toggles ascending/descending; its arrow icon shows the
