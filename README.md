@@ -26,6 +26,8 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Image Navigation (v1.5.0, React version in v2.0.0):** Easily navigate between images within the info view using previous and next buttons.
 *   **Raw Metadata Viewer:** Dive into the technical details with the "Show Raw Metadata" button, presenting data in an interactive JSON viewer.
 *   **Powerful Search and Sort:** Quickly locate media by filename search and organize your gallery by newest, oldest, or name.
+*   **Single Name Sort (v2.12.0):** One Name segment toggles ascending/descending sort; its arrow icon reflects the current direction.
+*   **Compact Settings (v2.12.0):** Settings are grouped into a two-column grid with short switches; the theme switch uses sun/moon icons.
 *   **Move Files (v1.5.0, React version in v2.0.0):** Drag and drop images between folders directly within the gallery to reorganize your output.
 *   **Delete Files (v1.5.0, React version in v2.0.0):** Delete unwanted images directly from the gallery with a confirmation prompt.
 *   **Download Files (v1.5.0, React version in v2.0.0):** Download individual images with a single click from the info view, using the original filename.
@@ -126,6 +128,10 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.12.0 (fork):**
+    *   **Name sorting:** replaced the duplicate `Name ↑` / `Name ↓` segments with one `Name` segment whose arrow toggles direction.
+    *   **Settings redesign:** compact two-column sections, shorter switches and fields; theme toggle now shows sun/moon icons.
 
 *   **v2.11.0 (fork):**
     *   **Pagination:** Endless scroll / 20 / 40 / 60 / 100 / 200, with ←/→ page buttons (disabled in Endless).

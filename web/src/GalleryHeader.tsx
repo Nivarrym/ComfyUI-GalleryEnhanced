@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Flex, AutoComplete, Button, Segmented, Select, Tag, Tooltip, Typography } from 'antd';
-import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined, LeftOutlined, RightOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useGalleryContext, type PageMode } from './GalleryContext';
 import { useDebounce, useCountDown } from 'ahooks';
 import GallerySizeControl from './GallerySizeControl';
@@ -220,9 +220,41 @@ const GalleryHeader = memo(function GalleryHeader() {
                 style={{
                     marginRight: 8
                 }}
-                options={['Newest', 'Oldest', 'Name ↑', 'Name ↓']}
-                value={sortMethod}
-                onChange={value => setSortMethod(value as any)}
+                options={[
+                    { value: 'Newest', label: 'Newest' },
+                    { value: 'Oldest', label: 'Oldest' },
+                    {
+                        value: 'Name',
+                        label: (
+                            <span
+                                className="gallery-sort-name"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setSortMethod(prev => {
+                                        if (prev === 'Name ↑') return 'Name ↓';
+                                        if (prev === 'Name ↓') return 'Name ↑';
+                                        return 'Name ↑';
+                                    });
+                                }}
+                            >
+                                Name
+                                {sortMethod === 'Name ↓' ? <ArrowDownOutlined /> : <ArrowUpOutlined />}
+                            </span>
+                        ),
+                    },
+                ]}
+                value={sortMethod === 'Name ↑' || sortMethod === 'Name ↓' ? 'Name' : sortMethod}
+                onChange={value => {
+                    if (value === 'Name') {
+                        setSortMethod(prev => {
+                            if (prev === 'Name ↑') return 'Name ↓';
+                            if (prev === 'Name ↓') return 'Name ↑';
+                            return 'Name ↑';
+                        });
+                    } else {
+                        setSortMethod(value as any);
+                    }
+                }}
             />
         </Flex>
     );

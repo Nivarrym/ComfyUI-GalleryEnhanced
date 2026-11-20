@@ -31,7 +31,6 @@ is the unmodified 2.7.1 import.
 - Paths are validated with the same realpath containment as delete/thumbnail.
 
 ### Selection and batch operations
-
 - **Ctrl/Cmd+click** toggles one asset; **Shift+click** selects the range between
   the anchor and the clicked asset (dividers are skipped).
 - **Box-drag select** on the empty grid background: drag a marquee over cards.
@@ -48,8 +47,16 @@ is the unmodified 2.7.1 import.
 - **Per-card trash button** appears in the top-right corner on hover/focus and
   deletes that one asset after a compact confirmation.
 
-### Dark theme
+### Sorting and settings
 
+- One `Name` sort segment toggles ascending/descending; its arrow icon shows the
+  active direction instead of duplicating two segments.
+- The settings dialog is a compact two-column layout: short switches with labels
+  and descriptions, grouped cards for appearance, performance, navigation,
+  files/monitoring, and source/thumbnails.
+- The theme switch shows a moon icon when dark and a sun icon when light.
+
+### Dark theme
 - The whole gallery now follows `darkMode`: modal, header, sidebar/tree, grid,
   cards, selection toolbar, settings, performance panel, metadata view, raw JSON
   viewer and scrollbars.
