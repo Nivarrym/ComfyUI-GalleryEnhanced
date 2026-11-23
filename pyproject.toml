@@ -1,14 +1,15 @@
 [project]
-name = "ComfyUI-Gallery"
-description = "Real-time Gallery for ComfyUI with image metadata inspection. Support for images and video."
-version = "2.14.0"
+name = "ComfyUI-Gallery-Fork"
+description = "Personal fork of ComfyUI Gallery: real-time gallery, metadata inspection, graph shortcuts and output-folder image loading."
+version = "2.15.0"
+authors = [{ name = "KagePC" }]
 license = {file = "LICENSE"} 
 
 [project.urls]
-Repository = "https://github.com/PanicTitan/ComfyUI-Gallery"
+Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = "panic-titan"
-DisplayName = "ComfyUI-Gallery"
+PublisherId = "kagepc"
+DisplayName = "ComfyUI Gallery Fork"
 Icon = "https://raw.githubusercontent.com/PanicTitan/ComfyUI-Gallery/refs/heads/main/logo.png"

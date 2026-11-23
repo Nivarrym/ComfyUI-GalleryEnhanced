@@ -47,6 +47,22 @@ is the unmodified 2.7.1 import.
 - **Per-card trash button** appears in the top-right corner on hover/focus and
   deletes that one asset after a compact confirmation.
 
+## Fork identity
+
+- Repository/package name: **ComfyUI-Gallery-Fork**.
+- Maintainer/author metadata: **KagePC** (`pyproject.toml`, `AUTHORS.md`).
+- Upstream attribution: PanicTitan/ComfyUI-Gallery remains credited in
+  `README.md`, `AUTHORS.md` and the upstream repository URL.
+
+## Gallery graph shortcuts
+
+- Every image card has an **Add to active graph** action that creates a
+  `LoadImageFromGallery` node at the graph viewport with the image path set.
+- The multi-selection toolbar adds each selected image as its own node.
+- New nodes are placed in a non-overlapping grid; repeated additions shift the
+  insertion point instead of stacking nodes.
+- ComfyUI's active graph is used, including when a subgraph is open.
+
 ### Load Image From Gallery node
 
 - New `Load Image From Gallery` node in `image`, returning `IMAGE` and `MASK`.

@@ -4,10 +4,12 @@ import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
 import DownloadOutlined from '@ant-design/icons/lib/icons/DownloadOutlined';
 import CheckSquareOutlined from '@ant-design/icons/lib/icons/CheckSquareOutlined';
 import CloseOutlined from '@ant-design/icons/lib/icons/CloseOutlined';
+import PlusSquareOutlined from '@ant-design/icons/lib/icons/PlusSquareOutlined';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
 import { BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
 import { useGalleryContext } from './GalleryContext';
+import { addGalleryImagesToGraph, galleryImagesFromSelection } from './GalleryGraph';
 
 /**
  * Floating selection actions: batch download, batch delete, select all, clear.
@@ -20,6 +22,7 @@ const SelectionToolbar = () => {
         selectAllVisible,
         clearSelection,
         deleteAssets,
+        settings,
     } = useGalleryContext();
     const { modal, message } = App.useApp();
     const [downloading, setDownloading] = useState(false);
@@ -85,6 +88,20 @@ const SelectionToolbar = () => {
         }
     }, [message, selectedImages]);
 
+    const addSelectedToGraph = useCallback(() => {
+        const images = galleryImagesFromSelection(selectableImages, selectedImages);
+        if (images.length === 0) {
+            message.warning('Select at least one image');
+            return;
+        }
+        const result = addGalleryImagesToGraph(images, settings.relativePath);
+        if (result.ok) {
+            message.success(`Added ${result.added} image${result.added === 1 ? '' : 's'} to the active graph`);
+        } else {
+            message.error(result.error || 'Could not add the images to the graph');
+        }
+    }, [message, selectableImages, selectedImages, settings.relativePath]);
+
     if (count === 0) return null;
 
     return (
@@ -97,6 +114,15 @@ const SelectionToolbar = () => {
                     </Button>
                 </Tooltip>
             )}
+            <Tooltip title="Add selected images to the active graph">
+                <Button
+                    size="small"
+                    icon={<PlusSquareOutlined />}
+                    onClick={addSelectedToGraph}
+                >
+                    Add to graph
+                </Button>
+            </Tooltip>
             <Button
                 size="small"
                 icon={<DownloadOutlined />}

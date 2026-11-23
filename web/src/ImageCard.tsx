@@ -7,6 +7,7 @@ import FolderOpenOutlined from '@ant-design/icons/lib/icons/FolderOpenOutlined';
 import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
 import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
+import PlusSquareOutlined from '@ant-design/icons/lib/icons/PlusSquareOutlined';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import type { Dispatch, SetStateAction } from 'react';
@@ -16,6 +17,7 @@ import { ComfyAppApi } from './ComfyAppApi';
 import { assetUrl } from './assetUrls';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import { GRID_THUMBNAIL_WIDTH, useThumbnail } from './thumbnails';
+import { addGalleryImagesToGraph } from './GalleryGraph';
 
 const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
@@ -243,6 +245,18 @@ const ImageCard = memo(function ImageCard({
         }
     };
 
+    const handleAddToGraph = () => {
+        const result = addGalleryImagesToGraph(
+            [{ url: image.url, name: image.name }],
+            settings.relativePath,
+        );
+        if (result.ok) {
+            message.success(`Added ${image.name} to the active graph`);
+        } else {
+            message.error(result.error || 'Could not add the image to the graph');
+        }
+    };
+
     // Native drag for exporting image as file/image
     const handleNativeDragStart = (event: React.DragEvent<HTMLImageElement | HTMLVideoElement | HTMLAudioElement>) => {
         // Guess MIME based on filename extension (frontend-only, no backend changes)
@@ -385,6 +399,18 @@ const ImageCard = memo(function ImageCard({
                 onPointerDown={(event) => event.stopPropagation()}
                 onMouseDown={(event) => event.stopPropagation()}
             >
+                {image.type === 'image' && (
+                    <Tooltip title="Add to active graph">
+                        <Button
+                            className="gallery-card-action"
+                            shape="circle"
+                            size="small"
+                            icon={<PlusSquareOutlined />}
+                            onClick={handleAddToGraph}
+                            aria-label={`Add ${image.name} to the active graph`}
+                        />
+                    </Tooltip>
+                )}
                 <Tooltip title="Show in file manager">
                     <Button
                         className="gallery-card-action"
