@@ -48,8 +48,14 @@ function getGraphApi() {
     if (!comfy || !liteGraph) return null;
 
     const canvas = comfy.canvas;
-    const graph = canvas?.graph ?? comfy.graph;
-    if (!graph || typeof graph.add !== 'function') return null;
+    const graphs = [
+        canvas?.subgraph?.graph,
+        canvas?.subgraph,
+        canvas?.graph,
+        comfy.graph,
+    ];
+    const graph = graphs.find((candidate) => candidate && typeof candidate.add === 'function');
+    if (!graph) return null;
     return { comfy, liteGraph, canvas, graph };
 }
 
@@ -58,7 +64,8 @@ function graphInsertionPoint(canvas: any): [number, number] {    try {
         if (element && typeof canvas.convertOffsetToCanvas === 'function') {
             const rect = element.getBoundingClientRect();
             const point = canvas.convertOffsetToCanvas([rect.width / 2, rect.height / 2]);
-            if (Array.isArray(point) && Number.isFinite(point[0]) && Number.isFinite(point[1])) {
+            if (point && point.length === 2
+                && Number.isFinite(point[0]) && Number.isFinite(point[1])) {
                 return [point[0], point[1]];
             }
         }
@@ -73,32 +80,56 @@ function graphInsertionPoint(canvas: any): [number, number] {    try {
 
 function findFreeInsertionPoint(
     graph: any,
+    canvas: any,
     start: [number, number],
     count: number,
     width: number,
     height: number,
 ): [number, number] {
     const existing = graph?._nodes ?? graph?.nodes ?? [];
-    let x = start[0];
-    const y = start[1];
-    for (let attempt = 0; attempt < 50; attempt += 1) {
-        const positions = Array.from({ length: count }, (_, index) => [
-            x + (index % 3) * (width + 28),
-            y + Math.floor(index / 3) * (height + 28),
-        ]);
-        const collides = existing.some((node: any) => {
-            if (!Array.isArray(node?.pos)) return false;
-            const nodeWidth = node.size?.[0] ?? width;
-            const nodeHeight = node.size?.[1] ?? height;
-            return positions.some(([px, py]) => (
-                Math.abs(node.pos[0] - px) < nodeWidth + 20
-                && Math.abs(node.pos[1] - py) < nodeHeight + 20
-            ));
-        });
-        if (!collides) return [x, y];
-        x += width + 28;
+    const collides = (x: number, y: number) => Array.from({ length: count }, (_, index) => [
+        x + (index % 3) * (width + 28),
+        y + Math.floor(index / 3) * (height + 28),
+    ]).some(([px, py]) => existing.some((node: any) => {
+        if (!Array.isArray(node?.pos)) return false;
+        const nodeWidth = node.size?.[0] ?? width;
+        const nodeHeight = node.size?.[1] ?? height;
+        return Math.abs(node.pos[0] - px) < nodeWidth + 20
+            && Math.abs(node.pos[1] - py) < nodeHeight + 20;
+    }));
+
+    // Prefer a free slot inside the currently visible viewport. Shifting to the
+    // right forever can place the node off-screen or under the side panel.
+    const visible = canvas?.ds?.visible_area;
+    if (visible && visible.length === 4
+        && Number.isFinite(visible[0]) && Number.isFinite(visible[1])
+        && Number.isFinite(visible[2]) && Number.isFinite(visible[3])) {
+        const [vx, vy, vw, vh] = visible;
+        const marginX = 80;
+        const marginY = 100;
+        const stepX = width + 28;
+        const stepY = height + 28;
+        const columns = Math.max(1, Math.floor((vw - marginX * 2 + 28) / stepX));
+        const rows = Math.max(1, Math.floor((vh - marginY * 2 + 28) / stepY));
+        for (let row = 0; row < rows; row += 1) {
+            for (let column = 0; column < columns; column += 1) {
+                const x = vx + marginX + column * stepX;
+                const y = vy + marginY + row * stepY;
+                const right = x + Math.min(3, count) * stepX;
+                const bottom = y + Math.ceil(count / 3) * stepY;
+                if (right > vx + vw - 20 || bottom > vy + vh - 20) continue;
+                if (!collides(x, y)) return [x, y];
+            }
+        }
+        // Nothing free in view: put the group in the middle of the viewport
+        // instead of pushing it off-screen or under the side panel.
+        return [
+            vx + vw / 2 - Math.min(3, count) * stepX / 2,
+            vy + vh / 2 - Math.ceil(count / 3) * stepY / 2,
+        ];
     }
-    return [x, y];
+
+    return start;
 }
 
 /**
@@ -125,12 +156,14 @@ export function addGalleryImagesToGraph(
 
     const [baseX, baseY] = findFreeInsertionPoint(
         api.graph,
+        api.canvas,
         graphInsertionPoint(api.canvas),
         images.length,
         320,
         160,
     );
     let added = 0;
+    let lastAddedNode: any = null;
     const failures: string[] = [];
 
     images.forEach((image, index) => {
@@ -176,6 +209,7 @@ export function addGalleryImagesToGraph(
                 baseY + Math.floor(index / 3) * (height + 28),
             ];
             added += 1;
+            lastAddedNode = node;
         } catch (error) {
             try {
                 api.graph.remove(node);
@@ -188,7 +222,11 @@ export function addGalleryImagesToGraph(
 
     try {
         api.graph.setDirtyCanvas?.(true, true);
+        api.graph.change?.();
         api.canvas?.setDirty?.(true, true);
+        if (lastAddedNode) {
+            api.canvas?.selectNode?.(lastAddedNode, false);
+        }
     } catch {
         // The graph still contains the nodes even if a redraw request fails.
     }

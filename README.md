@@ -136,6 +136,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.16.1 (fork):**
+    *   **Add to graph fix:** uses the active subgraph when one is open, handles ComfyUI's typed-array viewport, and places nodes in the first free visible slot instead of pushing them off-screen.
+
 *   **v2.16.0 (fork):**
     *   **Load Video From Gallery:** new `video` node returning `VIDEO`, backed by `InputImpl.VideoFromFile`.
     *   **Load Audio From Gallery:** new `audio` node returning `AUDIO` (`waveform` + `sample_rate`).

@@ -72,8 +72,10 @@ is the unmodified 2.7.1 import.
 - Every image card has an **Add to active graph** action that creates a
   `LoadImageFromGallery` node at the graph viewport with the image path set.
 - The multi-selection toolbar adds each selected image as its own node.
-- New nodes are placed in a non-overlapping grid; repeated additions shift the
-  insertion point instead of stacking nodes.
+- New nodes are placed in the first free slot inside the visible viewport;
+  repeated additions no longer push them under the side panel or off-screen.
+- Works with ComfyUI's active subgraph (`canvas.subgraph`) and its typed-array
+  `visible_area`; the added node is selected after insertion.
 - ComfyUI's active graph is used, including when a subgraph is open.
 
 ### Load Image From Gallery node
