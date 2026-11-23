@@ -247,7 +247,7 @@ const ImageCard = memo(function ImageCard({
 
     const handleAddToGraph = () => {
         const result = addGalleryImagesToGraph(
-            [{ url: image.url, name: image.name }],
+            [{ url: image.url, name: image.name, type: image.type as 'image' | 'media' | 'audio' }],
             settings.relativePath,
         );
         if (result.ok) {
@@ -399,7 +399,7 @@ const ImageCard = memo(function ImageCard({
                 onPointerDown={(event) => event.stopPropagation()}
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                {image.type === 'image' && (
+                {(image.type === 'image' || image.type === 'media' || image.type === 'audio') && (
                     <Tooltip title="Add to active graph">
                         <Button
                             className="gallery-card-action"

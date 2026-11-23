@@ -1,8 +1,11 @@
 import type { FileDetails } from './types';
 
+export type GalleryGraphAssetType = 'image' | 'media' | 'audio';
+
 export interface GalleryGraphImage {
     url: string;
     name: string;
+    type: GalleryGraphAssetType;
 }
 
 export interface GalleryGraphResult {
@@ -11,7 +14,11 @@ export interface GalleryGraphResult {
     error?: string;
 }
 
-const NODE_TYPE = 'LoadImageFromGallery';
+const NODE_CONFIG: Record<GalleryGraphAssetType, { type: string; widget: string }> = {
+    image: { type: 'LoadImageFromGallery', widget: 'image' },
+    media: { type: 'LoadVideoFromGallery', widget: 'video' },
+    audio: { type: 'LoadAudioFromGallery', widget: 'audio' },
+};
 const STATIC_PREFIX = '/static_gallery/';
 
 /**
@@ -127,15 +134,20 @@ export function addGalleryImagesToGraph(
     const failures: string[] = [];
 
     images.forEach((image, index) => {
+        const config = NODE_CONFIG[image.type];
+        if (!config) {
+            failures.push(`Unsupported gallery asset type: ${image.type}`);
+            return;
+        }
         let node: any = null;
         try {
-            node = api.liteGraph.createNode(NODE_TYPE);
+            node = api.liteGraph.createNode(config.type);
         } catch (error) {
             failures.push(String(error));
             return;
         }
         if (!node) {
-            failures.push(`Node type ${NODE_TYPE} is not registered`);
+            failures.push(`Node type ${config.type} is not registered`);
             return;
         }
 
@@ -143,7 +155,7 @@ export function addGalleryImagesToGraph(
             api.graph.add(node);
 
             const imagePath = toOutputRelativePath(image.url, relativePath);
-            const widget = node.widgets?.find((item: any) => item.name === 'image');
+            const widget = node.widgets?.find((item: any) => item.name === config.widget);
             if (widget) {
                 const values = widget.options?.values;
                 if (Array.isArray(values) && !values.includes(imagePath)) {
@@ -195,6 +207,12 @@ export function galleryImagesFromSelection(images: FileDetails[], selectedUrls: 
     const byUrl = new Map(images.map((image) => [image.url, image]));
     return selectedUrls
         .map((url) => byUrl.get(url))
-        .filter((image): image is FileDetails => !!image && image.type === 'image')
-        .map((image) => ({ url: image.url, name: image.name }));
+        .filter((image): image is FileDetails => !!image && (
+            image.type === 'image' || image.type === 'media' || image.type === 'audio'
+        ))
+        .map((image) => ({
+            url: image.url,
+            name: image.name,
+            type: image.type as GalleryGraphAssetType,
+        }));
 }

@@ -54,6 +54,19 @@ is the unmodified 2.7.1 import.
 - Upstream attribution: PanicTitan/ComfyUI-Gallery remains credited in
   `README.md`, `AUTHORS.md` and the upstream repository URL.
 
+### Video and audio gallery loaders
+
+- `Load Video From Gallery` (`video`): recursively lists output-folder videos
+  (mp4, webm, mov, mkv, avi, m4v) and returns a ComfyUI `VIDEO` object via
+  `InputImpl.VideoFromFile`.
+- `Load Audio From Gallery` (`audio`): recursively lists output-folder audio
+  (wav, mp3, m4a, flac, aac, ogg, opus) and returns `AUDIO` as
+  `{"waveform": ..., "sample_rate": ...}` using PyAV, matching `LoadAudio`.
+- Both nodes validate paths against the output root and use mtime/size for
+  `IS_CHANGED`.
+- Card and multi-selection graph shortcuts map `image` → image node,
+  `media` → video node, `audio` → audio node.
+
 ## Gallery graph shortcuts
 
 - Every image card has an **Add to active graph** action that creates a

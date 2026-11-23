@@ -51,8 +51,9 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Floating Button Mode:** Enable a draggable, floating "Open Gallery" button. Save its position across sessions.
     *   **Play Videos on Hover:** Control whether videos play automatically when hovering a card.
     *   **Hide Open Button:** Hide/Show the Open Gallery Button.
-*   **Add to Graph (v2.15.0):** Card and multi-selection action buttons insert `Load Image From Gallery` nodes into the active graph, pre-selected to the chosen image.
+*   **Add to Graph (v2.15.0, video/audio in v2.16.0):** Card and multi-selection action buttons insert the matching `Load Image / Video / Audio From Gallery` node into the active graph, pre-selected to the chosen asset.
 *   **Load Image From Gallery (v2.14.0):** An `image` node that lists images from the ComfyUI `output` directory and all of its subfolders, including files generated in previous sessions. Returns `IMAGE` and `MASK`.
+*   **Load Video / Audio From Gallery (v2.16.0):** `video` and `audio` nodes that recursively list output assets and return `VIDEO` / `AUDIO` respectively.
 *   **Unload Models Node (v2.13.0):** A standalone `utils` output node that unloads all models and empties the device cache. An optional wildcard `trigger` input lets you enforce execution order in larger graphs.
     *   **Show Date Divider:** Control visibility of date dividers in the grid.
     *   **Dark/Light Mode Toggle (v2.0.0):** Instantly switch between dark and light themes for comfortable viewing, directly from the settings panel.
@@ -134,6 +135,11 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.16.0 (fork):**
+    *   **Load Video From Gallery:** new `video` node returning `VIDEO`, backed by `InputImpl.VideoFromFile`.
+    *   **Load Audio From Gallery:** new `audio` node returning `AUDIO` (`waveform` + `sample_rate`).
+    *   **Graph shortcuts:** card and multi-select actions now choose the correct image, video or audio node automatically.
 
 *   **v2.15.0 (fork):**
     *   **Add to graph:** each image card has an action button that creates a `Load Image From Gallery` node in the active graph with the image pre-selected.
