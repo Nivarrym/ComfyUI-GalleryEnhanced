@@ -47,6 +47,21 @@ is the unmodified 2.7.1 import.
 - **Per-card trash button** appears in the top-right corner on hover/focus and
   deletes that one asset after a compact confirmation.
 
+### Load Image From Gallery node
+
+- New `Load Image From Gallery` node in `image`, returning `IMAGE` and `MASK`.
+- Recursively scans `folder_paths.get_output_directory()` so images from past
+  ComfyUI sessions and nested output folders are available. The built-in
+  `Load Image` only scans the input directory.
+- Paths are validated against the output root; path traversal and unsupported
+  extensions are rejected.
+- Supports PNG, JPEG, WebP, GIF, BMP and TIFF, EXIF orientation, alpha masks and
+  animated frames.
+- The combo list is built when ComfyUI refreshes node definitions. Use the
+  frontend refresh action (or restart ComfyUI) to see files generated after the
+  node was created.
+- `IS_CHANGED` uses mtime/size, so a replaced file triggers re-execution.
+
 ### Unload Models node
 
 - New `Unload Models` output node in `utils`.

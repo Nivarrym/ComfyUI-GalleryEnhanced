@@ -48,6 +48,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Floating Button Mode:** Enable a draggable, floating "Open Gallery" button. Save its position across sessions.
     *   **Play Videos on Hover:** Control whether videos play automatically when hovering a card.
     *   **Hide Open Button:** Hide/Show the Open Gallery Button.
+*   **Load Image From Gallery (v2.14.0):** An `image` node that lists images from the ComfyUI `output` directory and all of its subfolders, including files generated in previous sessions. Returns `IMAGE` and `MASK`.
 *   **Unload Models Node (v2.13.0):** A standalone `utils` output node that unloads all models and empties the device cache. An optional wildcard `trigger` input lets you enforce execution order in larger graphs.
     *   **Show Date Divider:** Control visibility of date dividers in the grid.
     *   **Dark/Light Mode Toggle (v2.0.0):** Instantly switch between dark and light themes for comfortable viewing, directly from the settings panel.
@@ -129,6 +130,10 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.14.0 (fork):**
+    *   **Load Image From Gallery:** new `image` node that recursively lists files from ComfyUI's `output` directory, including previous sessions. Returns `IMAGE` and `MASK`.
+    *   **Install path:** live junction updated after the workspace move.
 
 *   **v2.13.0 (fork):**
     *   **Unload Models node:** new output node under `utils` that calls `unload_all_models()` and `soft_empty_cache(force=True)`; optional wildcard trigger for execution ordering.
