@@ -101,7 +101,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Using ComfyUI Manager (Recommended):** ComfyUI Manager might prompt you to install missing dependencies. Click "Install Missing".
 *   **Manual Installation:**
     ```bash
-    cd ComfyUI/custom_nodes/ComfyUI-Gallery
+    cd ComfyUI/custom_nodes/ComfyUI-Gallery-Fork
     pip install -r requirements.txt
     ```
     (Note: The React frontend dependencies are built into the JavaScript bundle; `requirements.txt` is for Python backend dependencies if any are specific to this node beyond core ComfyUI.)
