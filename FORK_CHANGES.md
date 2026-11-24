@@ -62,6 +62,10 @@ is the unmodified 2.7.1 import.
   (overlay vs side-by-side), Fade switch (drag horizontally to blend), and a
   percentage readout.
 - Videos autoplay muted and loop in both overlay and side-by-side modes.
+- A is centered as the reference box; B is scaled independently by fit mode
+  (`fit`, `fill`, `stretch`, `original`, `match-width`, `match-height`) and
+  positioned by a configurable 3×3 anchor (center by default). Works with
+  images and videos of different sizes/aspect ratios.
 - Card and selection-toolbar Mask buttons upload the image to
   `input/gallery_masks` and open the built-in ComfyUI mask editor on a standard
   `LoadImage` node. The gallery modal closes first because the global editor
