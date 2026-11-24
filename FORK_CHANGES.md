@@ -78,6 +78,9 @@ is the unmodified 2.7.1 import.
 - A new magnifier card action opens a plain preview. It does not select the
   asset, does not show the selection overlay, and the global Delete/Backspace
   handler ignores the key while `previewMode !== 'selection'`.
+- The sticky date divider is flush with the top of the gallery scroll area;
+  top padding and inter-section margins were removed so cards cannot show or
+  receive clicks in the gap above it.
 - The filename is displayed in a chip above the previewed image in both modes,
   so the active file is always identifiable.
 - Metadata/video/audio/3D previews use the same plain mode.

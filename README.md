@@ -137,6 +137,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.17.2 (fork):**
+    *   **Sticky date divider:** removed the scroll padding/section gap above date headers so the sticky divider sits flush against the search bar and no interactive card content can peek through the gap.
+
 *   **v2.17.1 (fork):**
     *   **Preview filename:** both selection and read-only image previews show the current filename above the image, so the user always knows which asset is on screen.
 

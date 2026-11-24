@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-Gallery-Fork"
 description = "Personal fork of ComfyUI Gallery: real-time gallery, metadata inspection, graph shortcuts and output-folder image loading."
-version = "2.17.1"
+version = "2.17.2"
 authors = [{ name = "KagePC" }]
 license = {file = "LICENSE"} 
 
