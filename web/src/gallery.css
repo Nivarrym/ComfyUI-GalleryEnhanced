@@ -347,6 +347,163 @@
     font-size: 12px;
 }
 
+/* Two-asset comparison viewer. */
+.gallery-comparison-root {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483002;
+    display: flex;
+    flex-direction: column;
+    color: var(--gallery-text);
+    background: #090909;
+}
+
+.gallery-compare-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    background: var(--gallery-toolbar-bg);
+    border-bottom: 1px solid var(--gallery-border-strong);
+    backdrop-filter: blur(12px);
+    flex-wrap: wrap;
+}
+
+.gallery-compare-names {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-size: 13px;
+}
+
+.gallery-compare-names > span:not(.gallery-compare-vs) {
+    max-width: 32vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-compare-vs {
+    opacity: 0.6;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.gallery-compare-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.gallery-compare-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.gallery-compare-value {
+    min-width: 42px;
+    font-size: 12px;
+    text-align: right;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
+.gallery-compare-stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+}
+
+.gallery-compare-base,
+.gallery-compare-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.gallery-compare-overlay {
+    pointer-events: none;
+}
+
+.gallery-compare-media {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    user-select: none;
+}
+
+.gallery-compare-divider {
+    position: absolute;
+    z-index: 3;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+}
+
+.gallery-compare-divider-x {
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-1px);
+}
+
+.gallery-compare-divider-y {
+    left: 0;
+    right: 0;
+    height: 2px;
+    transform: translateY(-1px);
+}
+
+.gallery-compare-handle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 26px;
+    height: 26px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.gallery-compare-side-by-side {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 2px;
+    background: #000;
+}
+
+.gallery-compare-pane {
+    flex: 1 1 50%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.gallery-compare-pane .gallery-compare-media {
+    max-width: 100%;
+    max-height: 100%;
+}
+
 .gallery-size-control {
     display: flex;
     align-items: center;

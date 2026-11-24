@@ -54,6 +54,19 @@ is the unmodified 2.7.1 import.
 - Upstream attribution: PanicTitan/ComfyUI-Gallery remains credited in
   `README.md`, `AUTHORS.md` and the upstream repository URL.
 
+### Asset comparison and mask editor
+
+- Compare is enabled only when exactly two visual assets (image or video) are
+  selected. The viewer defaults to a 50/50 wipe overlay.
+- Top controls: horizontal/vertical wipe direction, Compare switch
+  (overlay vs side-by-side), Fade switch (drag horizontally to blend), and a
+  percentage readout.
+- Videos autoplay muted and loop in both overlay and side-by-side modes.
+- Card and selection-toolbar Mask buttons upload the image to
+  `input/gallery_masks` and open the built-in ComfyUI mask editor on a standard
+  `LoadImage` node. The gallery modal closes first because the global editor
+  opens behind it; non-image assets disable the action.
+
 ### Graph image preview
 
 - Nodes created by Add to Graph keep the registered **Load Image From Gallery**

@@ -53,6 +53,8 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Hide Open Button:** Hide/Show the Open Gallery Button.
 *   **Add to Graph (v2.15.0, video/audio in v2.16.0):** Card and multi-selection action buttons insert the matching `Load Image / Video / Audio From Gallery` node into the active graph, pre-selected to the chosen asset.
 *   **Graph preview (v2.18.0):** `Load Image From Gallery` nodes display the selected image inside the node; the preview updates with the file dropdown and Add to Graph.
+*   **Compare mode (v2.19.0):** With exactly two images/videos selected, the toolbar opens a wipe comparison with horizontal/vertical divider, side-by-side toggle and fade-by-drag mode.
+*   **Mask editor (v2.19.0):** Card and selection-toolbar buttons open ComfyUI's built-in mask editor for a gallery image.
 *   **Selection-aware preview (v2.17.0):** Clicking a card opens a selection preview; paging selects the viewed image and keeps the batch action toolbar above the preview mask. The magnifier button opens a read-only preview that never changes the selection and ignores Delete. The filename is shown above the image in both preview modes (v2.17.1).
 *   **Load Image From Gallery (v2.14.0):** An `image` node that lists images from the ComfyUI `output` directory and all of its subfolders, including files generated in previous sessions. Returns `IMAGE` and `MASK`.
 *   **Load Video / Audio From Gallery (v2.16.0):** `video` and `audio` nodes that recursively list output assets and return `VIDEO` / `AUDIO` respectively.
@@ -137,6 +139,10 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.19.0 (fork):**
+    *   **Asset comparison:** select exactly two images/videos and use Compare for a wipe overlay (horizontal/vertical divider), side-by-side mode, or fade-by-dragging.
+    *   **Mask editor integration:** card and multi-selection buttons open the built-in ComfyUI mask editor for an image.
 
 *   **v2.18.1 (fork):**
     *   **Single image loader:** Add to Graph no longer renames the created node to the filename, so there is only one clearly named `Load Image From Gallery` node type.

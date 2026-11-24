@@ -12,6 +12,7 @@ export interface GalleryGraphResult {
     ok: boolean;
     added: number;
     error?: string;
+    nodes?: any[];
 }
 
 const NODE_CONFIG: Record<GalleryGraphAssetType, { type: string; widget: string }> = {
@@ -164,6 +165,7 @@ export function addGalleryImagesToGraph(
     );
     let added = 0;
     let lastAddedNode: any = null;
+    const addedNodes: any[] = [];
     const failures: string[] = [];
 
     images.forEach((image, index) => {
@@ -218,6 +220,7 @@ export function addGalleryImagesToGraph(
             ];
             added += 1;
             lastAddedNode = node;
+            addedNodes.push(node);
         } catch (error) {
             try {
                 api.graph.remove(node);
@@ -246,7 +249,7 @@ export function addGalleryImagesToGraph(
             error: failures[0] || 'Could not create a Load Image From Gallery node',
         };
     }
-    return { ok: true, added };
+    return { ok: true, added, nodes: addedNodes };
 }
 
 export function galleryImagesFromSelection(images: FileDetails[], selectedUrls: string[]): GalleryGraphImage[] {

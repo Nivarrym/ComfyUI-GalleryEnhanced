@@ -6,12 +6,16 @@ import DownloadOutlined from '@ant-design/icons/lib/icons/DownloadOutlined';
 import CheckSquareOutlined from '@ant-design/icons/lib/icons/CheckSquareOutlined';
 import CloseOutlined from '@ant-design/icons/lib/icons/CloseOutlined';
 import PlusSquareOutlined from '@ant-design/icons/lib/icons/PlusSquareOutlined';
+import SwapOutlined from '@ant-design/icons/lib/icons/SwapOutlined';
+import HighlightOutlined from '@ant-design/icons/lib/icons/HighlightOutlined';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
 import { BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
 import { useGalleryContext } from './GalleryContext';
 import { addGalleryImagesToGraph, galleryImagesFromSelection } from './GalleryGraph';
 import { galleryThemeClass } from './theme';
+import GalleryComparison from './GalleryComparison';
+import { openMaskEditor } from './GalleryMask';
 
 /**
  * Floating selection actions: batch download, batch delete, select all, clear.
@@ -26,11 +30,27 @@ const SelectionToolbar = ({ overlay = false }: { overlay?: boolean }) => {
         deleteAssets,
         settings,
         effectiveDarkMode,
+        setOpen,
     } = useGalleryContext();
     const { modal, message } = App.useApp();
     const [downloading, setDownloading] = useState(false);
+    const [compareOpen, setCompareOpen] = useState(false);
 
     const count = selectedImages.length;
+    const selectedAssets = selectedImages
+        .map((url) => selectableImages.find((asset) => asset.url === url))
+        .filter((asset): asset is NonNullable<typeof asset> => !!asset);
+    const comparisonAssets = selectedAssets.filter(
+        (asset) => asset.type === 'image' || asset.type === 'media',
+    );
+    const canCompare = selectedAssets.length === 2 && comparisonAssets.length === 2;
+    const maskAsset = selectedAssets.length === 1 && selectedAssets[0].type === 'image'
+        ? selectedAssets[0]
+        : null;
+
+    useEffect(() => {
+        if (compareOpen && !canCompare) setCompareOpen(false);
+    }, [canCompare, compareOpen]);
 
     const confirmDelete = useCallback(() => {
         if (selectedImages.length === 0) return;
@@ -91,8 +111,7 @@ const SelectionToolbar = ({ overlay = false }: { overlay?: boolean }) => {
         }
     }, [message, selectedImages]);
 
-    const addSelectedToGraph = useCallback(() => {
-        const images = galleryImagesFromSelection(selectableImages, selectedImages);
+    const addSelectedToGraph = useCallback(() => {        const images = galleryImagesFromSelection(selectableImages, selectedImages);
         if (images.length === 0) {
             message.warning('Select at least one image, video or audio asset');
             return;
@@ -104,6 +123,16 @@ const SelectionToolbar = ({ overlay = false }: { overlay?: boolean }) => {
             message.error(result.error || 'Could not add the images to the graph');
         }
     }, [message, selectableImages, selectedImages, settings.relativePath]);
+
+    const editSelectedMask = useCallback(async () => {
+        if (!maskAsset) return;
+        const result = await openMaskEditor(maskAsset, settings.relativePath, () => setOpen(false));
+        if (result.ok) {
+            message.success('Mask editor opened');
+        } else {
+            message.error(result.error || 'Could not open the mask editor');
+        }
+    }, [maskAsset, message, setOpen, settings.relativePath]);
 
     if (count === 0) return null;
 
@@ -130,6 +159,26 @@ const SelectionToolbar = ({ overlay = false }: { overlay?: boolean }) => {
                     Add to graph
                 </Button>
             </Tooltip>
+            <Tooltip title={maskAsset ? 'Edit mask for the selected image' : 'Select exactly one image to edit its mask'}>
+                <Button
+                    size="small"
+                    icon={<HighlightOutlined />}
+                    disabled={!maskAsset}
+                    onClick={editSelectedMask}
+                >
+                    Mask
+                </Button>
+            </Tooltip>
+            <Tooltip title={canCompare ? 'Compare selected assets' : 'Select exactly two images or videos to compare'}>
+                <Button
+                    size="small"
+                    icon={<SwapOutlined />}
+                    disabled={!canCompare}
+                    onClick={() => setCompareOpen(true)}
+                >
+                    Compare
+                </Button>
+            </Tooltip>
             <Button
                 size="small"
                 icon={<DownloadOutlined />}
@@ -153,7 +202,19 @@ const SelectionToolbar = ({ overlay = false }: { overlay?: boolean }) => {
         </div>
     );
 
-    return overlay ? createPortal(toolbar, document.body) : toolbar;
+    return (
+        <>
+            {overlay ? createPortal(toolbar, document.body) : toolbar}
+            {compareOpen && canCompare && (
+                <GalleryComparison
+                    left={comparisonAssets[0]}
+                    right={comparisonAssets[1]}
+                    dark={effectiveDarkMode}
+                    onClose={() => setCompareOpen(false)}
+                />
+            )}
+        </>
+    );
 };
 
 export default SelectionToolbar;

@@ -9,6 +9,7 @@ import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import PlusSquareOutlined from '@ant-design/icons/lib/icons/PlusSquareOutlined';
 import ZoomInOutlined from '@ant-design/icons/lib/icons/ZoomInOutlined';
+import HighlightOutlined from '@ant-design/icons/lib/icons/HighlightOutlined';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import type { Dispatch, SetStateAction } from 'react';
@@ -19,6 +20,7 @@ import { assetUrl } from './assetUrls';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import { GRID_THUMBNAIL_WIDTH, useThumbnail } from './thumbnails';
 import { addGalleryImagesToGraph } from './GalleryGraph';
+import { openMaskEditor } from './GalleryMask';
 
 const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
@@ -84,6 +86,7 @@ const ImageCard = memo(function ImageCard({
     deleteAssets,
     setPreviewingVideo,
     setPreviewMode,
+    setOpen,
 }: {
     image: FileDetails & { dragFolder?: string };
     dragFolder?: string;
@@ -95,6 +98,7 @@ const ImageCard = memo(function ImageCard({
     deleteAssets: (urls: string[]) => Promise<DeleteResult>;
     setPreviewingVideo: Dispatch<SetStateAction<string | undefined>>;
     setPreviewMode: (mode: PreviewMode) => void;
+    setOpen: Dispatch<SetStateAction<boolean>>;
 }) {
     const { message } = App.useApp();
     const dragRef = useRef<HTMLDivElement>(null);
@@ -320,6 +324,15 @@ const ImageCard = memo(function ImageCard({
         window.setTimeout(() => setPreviewMode('plain'), 0);
     };
 
+    const handleMaskEditor = async () => {
+        const result = await openMaskEditor(image, settings.relativePath, () => setOpen(false));
+        if (result.ok) {
+            message.success('Mask editor opened');
+        } else {
+            message.error(result.error || 'Could not open the mask editor');
+        }
+    };
+
     const imageSrc = !thumbEnabled
         ? TRANSPARENT_PIXEL
         : (thumbnailSrc ?? (thumbnailState === 'error' ? originalSrc : TRANSPARENT_PIXEL));
@@ -443,6 +456,18 @@ const ImageCard = memo(function ImageCard({
                         aria-label={`Preview ${image.name} without selecting`}
                     />
                 </Tooltip>
+                {image.type === 'image' && (
+                    <Tooltip title="Edit mask">
+                        <Button
+                            className="gallery-card-action"
+                            shape="circle"
+                            size="small"
+                            icon={<HighlightOutlined />}
+                            onClick={handleMaskEditor}
+                            aria-label={`Edit mask for ${image.name}`}
+                        />
+                    </Tooltip>
+                )}
                 {(image.type === 'image' || image.type === 'media' || image.type === 'audio') && (
                     <Tooltip title="Add to active graph">
                         <Button
@@ -530,6 +555,7 @@ const ImageCard = memo(function ImageCard({
     && prev.deleteAssets === next.deleteAssets
     && prev.setPreviewingVideo === next.setPreviewingVideo
     && prev.setPreviewMode === next.setPreviewMode
+    && prev.setOpen === next.setOpen
 ));
 
 export default ImageCard
