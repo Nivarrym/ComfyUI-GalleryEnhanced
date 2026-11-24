@@ -138,6 +138,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.18.1 (fork):**
+    *   **Single image loader:** Add to Graph no longer renames the created node to the filename, so there is only one clearly named `Load Image From Gallery` node type.
+
 *   **v2.18.0 (fork):**
     *   **Node image preview:** `Load Image From Gallery` now shows the selected image directly inside the graph node, including nodes created by Add to Graph.
 

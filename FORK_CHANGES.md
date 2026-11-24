@@ -56,6 +56,10 @@ is the unmodified 2.7.1 import.
 
 ### Graph image preview
 
+- Nodes created by Add to Graph keep the registered **Load Image From Gallery**
+  title; the filename is only the widget value, so there is one visible loader
+  node type with a fixed name.
+
 - `LoadImageFromGallery` installs a non-serialized DOM widget showing the
   selected image inside the node.
 - The preview is built from the output-relative combo value via `/view` and

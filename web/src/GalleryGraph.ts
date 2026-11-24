@@ -209,7 +209,9 @@ export function addGalleryImagesToGraph(
 
             const width = node.size?.[0] ?? 320;
             const height = node.size?.[1] ?? 120;
-            node.title = image.name;
+            // Keep the registered title ("Load Image From Gallery"). Overriding
+            // it with the filename made the same node look like a second,
+            // unnamed node type in the graph.
             node.pos = [
                 baseX + (index % 3) * (width + 28),
                 baseY + Math.floor(index / 3) * (height + 28),
