@@ -55,6 +55,11 @@ export async function openMaskEditor(
 
     let node: any = null;
     try {
+        // The selection toolbar's Mask button can be used while Ant's image
+        // preview is open. Closing only the gallery modal leaves that preview
+        // portal above the mask editor, so close it explicitly first.
+        document.querySelector<HTMLElement>('.ant-image-preview-close')?.click();
+
         const imageResponse = await fetch(outputViewUrl(asset, relativePath));
         if (!imageResponse.ok) {
             throw new Error(`Could not load ${asset.name} (HTTP ${imageResponse.status})`);

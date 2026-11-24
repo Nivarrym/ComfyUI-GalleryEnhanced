@@ -58,9 +58,9 @@ is the unmodified 2.7.1 import.
 
 - Compare is enabled only when exactly two visual assets (image or video) are
   selected. The viewer defaults to a 50/50 wipe overlay.
-- Top controls: horizontal/vertical wipe direction, Compare switch
-  (overlay vs side-by-side), Fade switch (drag horizontally to blend), and a
-  percentage readout.
+- Top controls: horizontal/vertical wipe direction, Overlay switch
+  (overlay vs side-by-side), Fade switch (compact drag bar), Swap A/B, fit mode,
+  anchor and percentage readout.
 - Videos autoplay muted and loop in both overlay and side-by-side modes.
 - The overlay switch is labelled **Overlay** with a tooltip; **Swap A/B**
   exchanges reference and target without extra fit options.
@@ -74,6 +74,8 @@ is the unmodified 2.7.1 import.
   `input/gallery_masks` and open the built-in ComfyUI mask editor on a standard
   `LoadImage` node. The gallery modal closes first because the global editor
   opens behind it; non-image assets disable the action.
+- The Mask action also closes any open Ant image preview before starting the
+  editor.
 
 ### Graph image preview
 

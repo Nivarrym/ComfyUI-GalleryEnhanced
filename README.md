@@ -140,6 +140,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.19.3 (fork):**
+    *   **Mask from preview:** opening the mask editor from the preview action bar now closes Ant's image preview first, so the preview no longer stays above the mask editor.
+
 *   **v2.19.2 (fork):**
     *   **Comparison controls:** renamed the switch to **Overlay** with a hover tooltip, added **Swap A/B**, and replaced edge-to-edge fade dragging with a compact 360 px fade bar using relative drag distance.
 
