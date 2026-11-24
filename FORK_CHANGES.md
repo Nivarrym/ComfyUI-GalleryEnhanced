@@ -78,6 +78,8 @@ is the unmodified 2.7.1 import.
 - A new magnifier card action opens a plain preview. It does not select the
   asset, does not show the selection overlay, and the global Delete/Backspace
   handler ignores the key while `previewMode !== 'selection'`.
+- The filename is displayed in a chip above the previewed image in both modes,
+  so the active file is always identifiable.
 - Metadata/video/audio/3D previews use the same plain mode.
 
 ## Gallery graph shortcuts

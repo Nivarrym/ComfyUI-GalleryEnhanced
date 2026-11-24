@@ -82,6 +82,16 @@ const GalleryImageGrid = () => {
                 />
             );
         }
+        if (image.type === 'image') {
+            return (
+                <div className="gallery-preview-image-shell">
+                    <div className="gallery-preview-filename" title={image.name}>
+                        {image.name}
+                    </div>
+                    {originalNode}
+                </div>
+            );
+        }
         if (image.type === 'audio') {
             return (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
