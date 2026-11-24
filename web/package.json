@@ -1,7 +1,7 @@
 {
     "name": "comfy-ui-gallery-react-fork",
     "private": true,
-    "version": "2.19.3",
+    "version": "2.19.4",
     "author": "KagePC",
     "type": "module",
     "scripts": {

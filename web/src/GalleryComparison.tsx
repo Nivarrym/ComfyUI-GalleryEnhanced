@@ -21,6 +21,10 @@ type Box = { left: number; top: number; width: number; height: number };
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
+// Fade uses a fixed 360 px drag range regardless of viewport width, so the
+// user never has to drag from one screen edge to the other.
+const FADE_DRAG_RANGE = 360;
+
 const FIT_OPTIONS: { value: FitMode; label: string }[] = [
     { value: 'fit', label: 'Scale B to fit A' },
     { value: 'fill', label: 'Scale B to fill A' },
@@ -115,9 +119,8 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
     const [rightSize, setRightSize] = useState<Size | null>(null);
     const [stageSize, setStageSize] = useState<Size>({ width: 0, height: 0 });
     const stageRef = useRef<HTMLDivElement>(null);
-    const fadeBarRef = useRef<HTMLDivElement>(null);
     const draggingRef = useRef(false);
-    const fadeDragRef = useRef<{ startX: number; startRatio: number; width: number } | null>(null);
+    const fadeDragRef = useRef<{ startX: number; startRatio: number } | null>(null);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -167,37 +170,31 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
     }, [axis]);
 
     const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!compare || fade) return;
-        draggingRef.current = true;
+        if (!compare) return;
         event.currentTarget.setPointerCapture?.(event.pointerId);
+        if (fade) {
+            // Start a relative fade drag; do not jump to the click position.
+            fadeDragRef.current = { startX: event.clientX, startRatio: ratio };
+            return;
+        }
+        draggingRef.current = true;
         updateFromPointer(event.clientX, event.clientY);
     };
 
     const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!draggingRef.current || !compare || fade) return;
+        if (!compare) return;
+        if (fade) {
+            const drag = fadeDragRef.current;
+            if (!drag) return;
+            setRatio(clamp01(drag.startRatio + (event.clientX - drag.startX) / FADE_DRAG_RANGE));
+            return;
+        }
+        if (!draggingRef.current) return;
         updateFromPointer(event.clientX, event.clientY);
     };
 
     const handlePointerUp = () => {
         draggingRef.current = false;
-    };
-
-    const handleFadePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-        event.stopPropagation();
-        const bar = fadeBarRef.current;
-        const width = Math.max(1, bar?.getBoundingClientRect().width || 320);
-        fadeDragRef.current = { startX: event.clientX, startRatio: ratio, width };
-        event.currentTarget.setPointerCapture?.(event.pointerId);
-    };
-
-    const handleFadePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-        const drag = fadeDragRef.current;
-        if (!drag) return;
-        event.stopPropagation();
-        setRatio(clamp01(drag.startRatio + (event.clientX - drag.startX) / drag.width));
-    };
-
-    const handleFadePointerUp = () => {
         fadeDragRef.current = null;
     };
 
@@ -347,7 +344,7 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
                 <div
                     ref={stageRef}
                     className={`gallery-compare-stage${fade ? ' is-fade' : ''}`}
-                    style={{ cursor: fade ? 'default' : axis === 'x' ? 'col-resize' : 'row-resize' }}
+                    style={{ cursor: fade ? 'ew-resize' : axis === 'x' ? 'col-resize' : 'row-resize' }}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
@@ -366,21 +363,6 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
                             style={axis === 'x' ? { left: `${ratio * 100}%` } : { top: `${ratio * 100}%` }}
                         >
                             <span className="gallery-compare-handle" />
-                        </div>
-                    )}
-                    {fade && (
-                        <div
-                            className="gallery-compare-fade-control"
-                            onPointerDown={handleFadePointerDown}
-                            onPointerMove={handleFadePointerMove}
-                            onPointerUp={handleFadePointerUp}
-                            onPointerCancel={handleFadePointerUp}
-                        >
-                            <div className="gallery-compare-fade-track" ref={fadeBarRef}>
-                                <div className="gallery-compare-fade-fill" style={{ width: `${ratio * 100}%` }} />
-                                <span className="gallery-compare-fade-thumb" style={{ left: `${ratio * 100}%` }} />
-                            </div>
-                            <span className="gallery-compare-fade-label">Drag fade</span>
                         </div>
                     )}
                 </div>

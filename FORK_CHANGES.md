@@ -64,8 +64,9 @@ is the unmodified 2.7.1 import.
 - Videos autoplay muted and loop in both overlay and side-by-side modes.
 - The overlay switch is labelled **Overlay** with a tooltip; **Swap A/B**
   exchanges reference and target without extra fit options.
-- Fade uses a compact centred 360 px drag bar; movement is relative to the drag
-  start (no jump when clicking and no edge-to-edge drag requirement).
+- Fade is adjusted by dragging anywhere over the image. A fixed 360 px movement
+  covers the full range, with no jump based on the click position and no visible
+  slider overlay.
 - A is centered as the reference box; B is scaled independently by fit mode
   (`fit`, `fill`, `stretch`, `original`, `match-width`, `match-height`) and
   positioned by a configurable 3×3 anchor (center by default). Works with
