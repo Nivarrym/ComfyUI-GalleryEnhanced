@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Segmented, Select, Switch, Tooltip } from 'antd';
 import CloseOutlined from '@ant-design/icons/lib/icons/CloseOutlined';
+import SwapOutlined from '@ant-design/icons/lib/icons/SwapOutlined';
 import ColumnWidthOutlined from '@ant-design/icons/lib/icons/ColumnWidthOutlined';
 import ColumnHeightOutlined from '@ant-design/icons/lib/icons/ColumnHeightOutlined';
 import type { FileDetails } from './types';
@@ -102,6 +103,8 @@ const ComparisonMedia = ({
 };
 
 const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProps) => {
+    const [assetA, setAssetA] = useState(left);
+    const [assetB, setAssetB] = useState(right);
     const [compare, setCompare] = useState(true);
     const [fade, setFade] = useState(false);
     const [axis, setAxis] = useState<'x' | 'y'>('x');
@@ -112,7 +115,9 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
     const [rightSize, setRightSize] = useState<Size | null>(null);
     const [stageSize, setStageSize] = useState<Size>({ width: 0, height: 0 });
     const stageRef = useRef<HTMLDivElement>(null);
+    const fadeBarRef = useRef<HTMLDivElement>(null);
     const draggingRef = useRef(false);
+    const fadeDragRef = useRef<{ startX: number; startRatio: number; width: number } | null>(null);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -130,6 +135,8 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
     }, [onClose]);
 
     useEffect(() => {
+        setAssetA(left);
+        setAssetB(right);
         setLeftSize(null);
         setRightSize(null);
     }, [left.url, right.url]);
@@ -152,31 +159,53 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
         const stage = stageRef.current;
         if (!stage) return;
         const rect = stage.getBoundingClientRect();
-        if (fade) {
-            setRatio(clamp01((clientX - rect.left) / Math.max(1, rect.width)));
-            return;
-        }
         if (axis === 'x') {
             setRatio(clamp01((clientX - rect.left) / Math.max(1, rect.width)));
         } else {
             setRatio(clamp01((clientY - rect.top) / Math.max(1, rect.height)));
         }
-    }, [axis, fade]);
+    }, [axis]);
 
     const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!compare) return;
+        if (!compare || fade) return;
         draggingRef.current = true;
         event.currentTarget.setPointerCapture?.(event.pointerId);
         updateFromPointer(event.clientX, event.clientY);
     };
 
     const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!draggingRef.current || !compare) return;
+        if (!draggingRef.current || !compare || fade) return;
         updateFromPointer(event.clientX, event.clientY);
     };
 
     const handlePointerUp = () => {
         draggingRef.current = false;
+    };
+
+    const handleFadePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        event.stopPropagation();
+        const bar = fadeBarRef.current;
+        const width = Math.max(1, bar?.getBoundingClientRect().width || 320);
+        fadeDragRef.current = { startX: event.clientX, startRatio: ratio, width };
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    };
+
+    const handleFadePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+        const drag = fadeDragRef.current;
+        if (!drag) return;
+        event.stopPropagation();
+        setRatio(clamp01(drag.startRatio + (event.clientX - drag.startX) / drag.width));
+    };
+
+    const handleFadePointerUp = () => {
+        fadeDragRef.current = null;
+    };
+
+    const swapAssets = () => {
+        setAssetA(assetB);
+        setAssetB(assetA);
+        setLeftSize(null);
+        setRightSize(null);
     };
 
     const aBox = useMemo<Box>(() => {
@@ -236,9 +265,9 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
         >
             <div className="gallery-compare-topbar" onPointerDown={(event) => event.stopPropagation()}>
                 <div className="gallery-compare-names">
-                    <span title={left.name}>A: {left.name}</span>
+                    <span title={assetA.name}>A: {assetA.name}</span>
                     <span className="gallery-compare-vs">vs</span>
-                    <span title={right.name}>B: {right.name}</span>
+                    <span title={assetB.name}>B: {assetB.name}</span>
                 </div>
                 <div className="gallery-compare-controls">
                     <Tooltip title="Direction of the wipe divider">
@@ -278,10 +307,22 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
                             ))}
                         </span>
                     </Tooltip>
-                    <label className="gallery-compare-switch">
-                        <span>Compare</span>
-                        <Switch size="small" checked={compare} onChange={setCompare} />
-                    </label>
+                    <Tooltip title="Swap the reference image A and the compared image B">
+                        <Button
+                            size="small"
+                            icon={<SwapOutlined />}
+                            onClick={swapAssets}
+                            aria-label="Swap A and B"
+                        >
+                            Swap A/B
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title="Show A and B overlaid; turn off for side-by-side">
+                        <label className="gallery-compare-switch">
+                            <span>Overlay</span>
+                            <Switch size="small" checked={compare} onChange={setCompare} />
+                        </label>
+                    </Tooltip>
                     <label className="gallery-compare-switch">
                         <span>Fade</span>
                         <Switch
@@ -306,18 +347,18 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
                 <div
                     ref={stageRef}
                     className={`gallery-compare-stage${fade ? ' is-fade' : ''}`}
-                    style={{ cursor: fade ? 'ew-resize' : axis === 'x' ? 'col-resize' : 'row-resize' }}
+                    style={{ cursor: fade ? 'default' : axis === 'x' ? 'col-resize' : 'row-resize' }}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
                     onPointerCancel={handlePointerUp}
                 >
-                    <ComparisonMedia asset={right} style={bBox} onSize={setRightSize} positioned />
+                    <ComparisonMedia asset={assetB} style={bBox} onSize={setRightSize} positioned />
                     <div
                         className="gallery-compare-overlay"
                         style={fade ? { opacity: ratio } : { clipPath }}
                     >
-                        <ComparisonMedia asset={left} style={aBox} onSize={setLeftSize} positioned />
+                        <ComparisonMedia asset={assetA} style={aBox} onSize={setLeftSize} positioned />
                     </div>
                     {!fade && (
                         <div
@@ -327,14 +368,29 @@ const GalleryComparison = ({ left, right, onClose, dark }: GalleryComparisonProp
                             <span className="gallery-compare-handle" />
                         </div>
                     )}
+                    {fade && (
+                        <div
+                            className="gallery-compare-fade-control"
+                            onPointerDown={handleFadePointerDown}
+                            onPointerMove={handleFadePointerMove}
+                            onPointerUp={handleFadePointerUp}
+                            onPointerCancel={handleFadePointerUp}
+                        >
+                            <div className="gallery-compare-fade-track" ref={fadeBarRef}>
+                                <div className="gallery-compare-fade-fill" style={{ width: `${ratio * 100}%` }} />
+                                <span className="gallery-compare-fade-thumb" style={{ left: `${ratio * 100}%` }} />
+                            </div>
+                            <span className="gallery-compare-fade-label">Drag fade</span>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="gallery-compare-side-by-side">
                     <div className="gallery-compare-pane">
-                        <ComparisonMedia asset={left} />
+                        <ComparisonMedia asset={assetA} />
                     </div>
                     <div className="gallery-compare-pane">
-                        <ComparisonMedia asset={right} />
+                        <ComparisonMedia asset={assetB} />
                     </div>
                 </div>
             )}

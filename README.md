@@ -53,7 +53,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Hide Open Button:** Hide/Show the Open Gallery Button.
 *   **Add to Graph (v2.15.0, video/audio in v2.16.0):** Card and multi-selection action buttons insert the matching `Load Image / Video / Audio From Gallery` node into the active graph, pre-selected to the chosen asset.
 *   **Graph preview (v2.18.0):** `Load Image From Gallery` nodes display the selected image inside the node; the preview updates with the file dropdown and Add to Graph.
-*   **Compare mode (v2.19.0, fit/anchor in v2.19.1):** With exactly two images/videos selected, the toolbar opens a wipe comparison with horizontal/vertical divider, side-by-side toggle and fade-by-drag mode. A is the reference; B can fit/fill/stretch/original/match width or height and be anchored anywhere on A.
+*   **Compare mode (v2.19.0, fit/anchor in v2.19.1, overlay/fade controls in v2.19.2):** With exactly two images/videos selected, the toolbar opens a wipe comparison with horizontal/vertical divider, an Overlay toggle (with tooltip), side-by-side mode and a compact fade drag bar. A is the reference; B can fit/fill/stretch/original/match width or height and be anchored anywhere on A; Swap A/B swaps the reference and target.
 *   **Mask editor (v2.19.0):** Card and selection-toolbar buttons open ComfyUI's built-in mask editor for a gallery image.
 *   **Selection-aware preview (v2.17.0):** Clicking a card opens a selection preview; paging selects the viewed image and keeps the batch action toolbar above the preview mask. The magnifier button opens a read-only preview that never changes the selection and ignores Delete. The filename is shown above the image in both preview modes (v2.17.1).
 *   **Load Image From Gallery (v2.14.0):** An `image` node that lists images from the ComfyUI `output` directory and all of its subfolders, including files generated in previous sessions. Returns `IMAGE` and `MASK`.
@@ -139,6 +139,9 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.19.2 (fork):**
+    *   **Comparison controls:** renamed the switch to **Overlay** with a hover tooltip, added **Swap A/B**, and replaced edge-to-edge fade dragging with a compact 360 px fade bar using relative drag distance.
 
 *   **v2.19.1 (fork):**
     *   **Comparison fit and anchor:** A is centered as the reference; B can fit/fill/stretch/original/match-width/match-height and is positioned with a 3×3 anchor (center by default), including for different aspect ratios and videos.

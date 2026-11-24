@@ -62,6 +62,10 @@ is the unmodified 2.7.1 import.
   (overlay vs side-by-side), Fade switch (drag horizontally to blend), and a
   percentage readout.
 - Videos autoplay muted and loop in both overlay and side-by-side modes.
+- The overlay switch is labelled **Overlay** with a tooltip; **Swap A/B**
+  exchanges reference and target without extra fit options.
+- Fade uses a compact centred 360 px drag bar; movement is relative to the drag
+  start (no jump when clicking and no edge-to-edge drag requirement).
 - A is centered as the reference box; B is scaled independently by fit mode
   (`fit`, `fill`, `stretch`, `original`, `match-width`, `match-height`) and
   positioned by a configurable 3×3 anchor (center by default). Works with
