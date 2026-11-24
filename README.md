@@ -140,6 +140,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.19.5 (fork):**
+    *   **Selection outline:** the selected-card border is drawn inside the card, so it is no longer clipped at the bottom of the first grid row.
+
 *   **v2.19.4 (fork):**
     *   **Fade drag:** removed the visible fade bar. Fade is adjusted by dragging anywhere over the image; 360 px of movement covers the full 0–100% range and the click position does not cause a jump.
 

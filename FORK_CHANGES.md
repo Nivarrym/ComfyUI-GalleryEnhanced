@@ -75,6 +75,8 @@ is the unmodified 2.7.1 import.
   `input/gallery_masks` and open the built-in ComfyUI mask editor on a standard
   `LoadImage` node. The gallery modal closes first because the global editor
   opens behind it; non-image assets disable the action.
+- The selected-card outline is an inset pseudo-element border, avoiding clipping
+  by content-visibility at grid row boundaries.
 - The Mask action also closes any open Ant image preview before starting the
   editor.
 

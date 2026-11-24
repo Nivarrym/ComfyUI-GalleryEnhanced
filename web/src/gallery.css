@@ -144,7 +144,17 @@
 }
 
 .image-card.gallery-card-selected {
-    box-shadow: 0 0 0 3px var(--gallery-accent), var(--gallery-shadow);
+    box-shadow: var(--gallery-shadow);
+}
+
+.image-card.gallery-card-selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border: 3px solid var(--gallery-accent);
+    border-radius: 8px;
+    pointer-events: none;
 }
 
 .gallery-card-selected-check {
