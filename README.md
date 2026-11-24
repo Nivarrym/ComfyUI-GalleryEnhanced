@@ -52,6 +52,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
     *   **Play Videos on Hover:** Control whether videos play automatically when hovering a card.
     *   **Hide Open Button:** Hide/Show the Open Gallery Button.
 *   **Add to Graph (v2.15.0, video/audio in v2.16.0):** Card and multi-selection action buttons insert the matching `Load Image / Video / Audio From Gallery` node into the active graph, pre-selected to the chosen asset.
+*   **Graph preview (v2.18.0):** `Load Image From Gallery` nodes display the selected image inside the node; the preview updates with the file dropdown and Add to Graph.
 *   **Selection-aware preview (v2.17.0):** Clicking a card opens a selection preview; paging selects the viewed image and keeps the batch action toolbar above the preview mask. The magnifier button opens a read-only preview that never changes the selection and ignores Delete. The filename is shown above the image in both preview modes (v2.17.1).
 *   **Load Image From Gallery (v2.14.0):** An `image` node that lists images from the ComfyUI `output` directory and all of its subfolders, including files generated in previous sessions. Returns `IMAGE` and `MASK`.
 *   **Load Video / Audio From Gallery (v2.16.0):** `video` and `audio` nodes that recursively list output assets and return `VIDEO` / `AUDIO` respectively.
@@ -136,6 +137,9 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.18.0 (fork):**
+    *   **Node image preview:** `Load Image From Gallery` now shows the selected image directly inside the graph node, including nodes created by Add to Graph.
 
 *   **v2.17.2 (fork):**
     *   **Sticky date divider:** removed the scroll padding/section gap above date headers so the sticky divider sits flush against the search bar and no interactive card content can peek through the gap.

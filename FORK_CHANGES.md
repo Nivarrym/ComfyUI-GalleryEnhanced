@@ -54,6 +54,15 @@ is the unmodified 2.7.1 import.
 - Upstream attribution: PanicTitan/ComfyUI-Gallery remains credited in
   `README.md`, `AUTHORS.md` and the upstream repository URL.
 
+### Graph image preview
+
+- `LoadImageFromGallery` installs a non-serialized DOM widget showing the
+  selected image inside the node.
+- The preview is built from the output-relative combo value via `/view` and
+  refreshes on dropdown changes, Add to Graph, configure/undo and draw-time
+  value changes.
+- Nodes created by the gallery shortcut call the same preview installer.
+
 ### Video and audio gallery loaders
 
 - `Load Video From Gallery` (`video`): recursively lists output-folder videos

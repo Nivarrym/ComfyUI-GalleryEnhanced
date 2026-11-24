@@ -91,6 +91,90 @@ function waitForElement(selectorOrSelectors: string | string[], delay = 500, tim
     });
 }
 
+function galleryViewUrl(value: string): string {
+    const normalized = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const slash = normalized.lastIndexOf('/');
+    const subfolder = slash >= 0 ? normalized.slice(0, slash) : '';
+    const filename = slash >= 0 ? normalized.slice(slash + 1) : normalized;
+    const params = new URLSearchParams({
+        filename,
+        type: 'output',
+        subfolder,
+        t: String(Date.now()),
+    });
+    return `/view?${params.toString()}`;
+}
+
+function attachGalleryImagePreview(node: any) {
+    if (node.__galleryImagePreviewInstalled) return;
+    node.__galleryImagePreviewInstalled = true;
+
+    const imageWidget = node.widgets?.find((widget: any) => widget.name === 'image');
+    if (!imageWidget) return;
+
+    const container = document.createElement('div');
+    container.className = 'gallery-node-preview';
+    const image = document.createElement('img');
+    image.className = 'gallery-node-preview-image';
+    image.alt = '';
+    container.appendChild(image);
+
+    node.addDOMWidget('gallery_image_preview', 'gallery_image_preview', container, {
+        serialize: false,
+        hideOnZoom: false,
+        getMinHeight: () => 170,
+        getHeight: () => 170,
+    });
+
+    let lastValue = '';
+    const update = (force = false) => {
+        const value = String(imageWidget.value || '');
+        if (!force && value === lastValue) return;
+        lastValue = value;
+        if (!value) {
+            image.removeAttribute('src');
+            container.classList.add('gallery-node-preview-empty');
+            return;
+        }
+        container.classList.remove('gallery-node-preview-empty');
+        image.src = galleryViewUrl(value);
+    };
+
+    const originalCallback = imageWidget.callback;
+    imageWidget.callback = function (...args: any[]) {
+        const result = originalCallback?.apply(this, args);
+        update();
+        return result;
+    };
+
+    const originalConfigure = node.onConfigure;
+    node.onConfigure = function (...args: any[]) {
+        const result = originalConfigure?.apply(this, args);
+        update(true);
+        return result;
+    };
+
+    const originalDraw = node.onDrawForeground;
+    node.onDrawForeground = function (...args: any[]) {
+        const result = originalDraw?.apply(this, args);
+        // Catches values assigned directly by Add to Graph or by undo/redo.
+        update();
+        return result;
+    };
+
+    update(true);
+    try {
+        node.setSize([
+            Math.max(node.size?.[0] ?? 320, 320),
+            Math.max(node.size?.[1] ?? 120, 300),
+        ]);
+    } catch {
+        // The preview still works if a frontend build doesn't expose setSize.
+    }
+}
+
+(window as any).__galleryAttachImagePreview = attachGalleryImagePreview;
+
 ComfyAppApi.registerExtension({
     name: "Gallery",
     async init() {
@@ -141,6 +225,9 @@ ComfyAppApi.registerExtension({
     },
     async nodeCreated(node: any) {
         try {
+            if (node.comfyClass === "LoadImageFromGallery" || node.type === "LoadImageFromGallery") {
+                attachGalleryImagePreview(node);
+            }
             if (node.comfyClass === "GalleryNode") {
                 node.addWidget("button", "Open Gallery", null, () => {
                     try {

@@ -199,7 +199,13 @@ export function addGalleryImagesToGraph(
                     }
                 }
                 widget.value = imagePath;
+                try {
+                    widget.callback?.(imagePath, api.canvas, node, {}, {});
+                } catch {
+                    // Preview installation below is the authoritative update.
+                }
             }
+            (window as any).__galleryAttachImagePreview?.(node);
 
             const width = node.size?.[0] ?? 320;
             const height = node.size?.[1] ?? 120;
