@@ -8,11 +8,12 @@ import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
 import PlayCircleFilled from '@ant-design/icons/lib/icons/PlayCircleFilled';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import PlusSquareOutlined from '@ant-design/icons/lib/icons/PlusSquareOutlined';
+import ZoomInOutlined from '@ant-design/icons/lib/icons/ZoomInOutlined';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import type { Dispatch, SetStateAction } from 'react';
 import type { DeleteResult } from './ComfyAppApi';
-import type { SettingsState, SelectionModifiers } from './GalleryContext';
+import type { PreviewMode, SettingsState, SelectionModifiers } from './GalleryContext';
 import { ComfyAppApi } from './ComfyAppApi';
 import { assetUrl } from './assetUrls';
 import { use3DThumbnail } from './GlobalModelRenderer';
@@ -82,6 +83,7 @@ const ImageCard = memo(function ImageCard({
     selectImage,
     deleteAssets,
     setPreviewingVideo,
+    setPreviewMode,
 }: {
     image: FileDetails & { dragFolder?: string };
     dragFolder?: string;
@@ -92,10 +94,12 @@ const ImageCard = memo(function ImageCard({
     selectImage: (url: string, modifiers?: SelectionModifiers) => void;
     deleteAssets: (urls: string[]) => Promise<DeleteResult>;
     setPreviewingVideo: Dispatch<SetStateAction<string | undefined>>;
+    setPreviewMode: (mode: PreviewMode) => void;
 }) {
     const { message } = App.useApp();
     const dragRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const suppressPreviewClickRef = useRef(false);
     const [dragging, setDragging] = useState(false);
     const [videoPlaying, setVideoPlaying] = useState(false);
     const [videoMuted, setVideoMuted] = useState(true);
@@ -209,8 +213,29 @@ const ImageCard = memo(function ImageCard({
         });
     };
 
+    // Opening the hidden Ant Image programmatically also bubbles a click to the
+    // card. Suppress that synthetic click so a magnifier/info preview cannot be
+    // converted into a selection preview.
+    const openHiddenPreview = () => {
+        suppressPreviewClickRef.current = true;
+        document.getElementById(image.url)?.click();
+        window.setTimeout(() => {
+            suppressPreviewClickRef.current = false;
+        }, 0);
+    };
+
     const handleCardClick = () => {
-        selectImage(image.url, {});
+        if (suppressPreviewClickRef.current) {
+            suppressPreviewClickRef.current = false;
+            return;
+        }
+        if (image.type === 'image') {
+            setPreviewMode('selection');
+            selectImage(image.url, {});
+        } else {
+            // Video/audio/3D previews are not selection previews.
+            setPreviewMode('plain');
+        }
     };
 
     const handleDelete = async () => {
@@ -282,8 +307,17 @@ const ImageCard = memo(function ImageCard({
     };
 
     const openPreview = () => {
-        try { setPreviewingVideo(undefined); } catch { }
-        document.getElementById(image.url)?.click();
+        try { setPreviewMode('plain'); setPreviewingVideo(undefined); } catch { }
+        openHiddenPreview();
+        window.setTimeout(() => setPreviewMode('plain'), 0);
+    };
+
+    const handlePlainPreview = () => {
+        // Magnifier: read-only preview, deliberately no selection change.
+        setPreviewMode('plain');
+        setPreviewingVideo(undefined);
+        openHiddenPreview();
+        window.setTimeout(() => setPreviewMode('plain'), 0);
     };
 
     const imageSrc = !thumbEnabled
@@ -376,7 +410,7 @@ const ImageCard = memo(function ImageCard({
                     onPause={() => setVideoPlaying(false)}
                     onClick={() => {
                         onVideoClick(image.name);
-                        document.getElementById(image.url)?.click();
+                        openHiddenPreview();
                     }}
                     draggable
                     onDragStart={handleNativeDragStart}
@@ -399,6 +433,16 @@ const ImageCard = memo(function ImageCard({
                 onPointerDown={(event) => event.stopPropagation()}
                 onMouseDown={(event) => event.stopPropagation()}
             >
+                <Tooltip title="Preview without selecting">
+                    <Button
+                        className="gallery-card-action"
+                        shape="circle"
+                        size="small"
+                        icon={<ZoomInOutlined />}
+                        onClick={handlePlainPreview}
+                        aria-label={`Preview ${image.name} without selecting`}
+                    />
+                </Tooltip>
                 {(image.type === 'image' || image.type === 'media' || image.type === 'audio') && (
                     <Tooltip title="Add to active graph">
                         <Button
@@ -468,7 +512,7 @@ const ImageCard = memo(function ImageCard({
                         onClick={(event) => {
                             event.stopPropagation();
                             onInfoClick(image.name);
-                            document.getElementById(image.url)?.click();
+                            openHiddenPreview();
                         }}
                     />
                 </Tooltip>
@@ -485,6 +529,7 @@ const ImageCard = memo(function ImageCard({
     && prev.selectImage === next.selectImage
     && prev.deleteAssets === next.deleteAssets
     && prev.setPreviewingVideo === next.setPreviewingVideo
+    && prev.setPreviewMode === next.setPreviewMode
 ));
 
 export default ImageCard

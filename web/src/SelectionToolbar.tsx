@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { App, Button, Tooltip } from 'antd';
 import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
 import DownloadOutlined from '@ant-design/icons/lib/icons/DownloadOutlined';
@@ -10,12 +11,13 @@ import FileSaver from 'file-saver';
 import { BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
 import { useGalleryContext } from './GalleryContext';
 import { addGalleryImagesToGraph, galleryImagesFromSelection } from './GalleryGraph';
+import { galleryThemeClass } from './theme';
 
 /**
  * Floating selection actions: batch download, batch delete, select all, clear.
  * The same delete flow is triggered by the Delete/Backspace keyboard shortcut.
  */
-const SelectionToolbar = () => {
+const SelectionToolbar = ({ overlay = false }: { overlay?: boolean }) => {
     const {
         selectedImages,
         selectableImages,
@@ -23,6 +25,7 @@ const SelectionToolbar = () => {
         clearSelection,
         deleteAssets,
         settings,
+        effectiveDarkMode,
     } = useGalleryContext();
     const { modal, message } = App.useApp();
     const [downloading, setDownloading] = useState(false);
@@ -33,7 +36,7 @@ const SelectionToolbar = () => {
         if (selectedImages.length === 0) return;
         const urls = [...selectedImages];
         modal.confirm({
-            zIndex: BASE_Z_INDEX + 10,
+            zIndex: overlay ? 2147483002 : BASE_Z_INDEX + 10,
             title: `Delete ${urls.length} asset${urls.length === 1 ? '' : 's'}?`,
             content: 'This permanently removes the selected files from disk. This cannot be undone.',
             okText: `Delete (${urls.length})`,
@@ -53,7 +56,7 @@ const SelectionToolbar = () => {
                 }
             },
         });
-    }, [deleteAssets, message, modal, selectedImages]);
+    }, [deleteAssets, message, modal, overlay, selectedImages]);
 
     useEffect(() => {
         const handler = () => confirmDelete();
@@ -91,12 +94,12 @@ const SelectionToolbar = () => {
     const addSelectedToGraph = useCallback(() => {
         const images = galleryImagesFromSelection(selectableImages, selectedImages);
         if (images.length === 0) {
-            message.warning('Select at least one image');
+            message.warning('Select at least one image, video or audio asset');
             return;
         }
         const result = addGalleryImagesToGraph(images, settings.relativePath);
         if (result.ok) {
-            message.success(`Added ${result.added} image${result.added === 1 ? '' : 's'} to the active graph`);
+            message.success(`Added ${result.added} asset${result.added === 1 ? '' : 's'} to the active graph`);
         } else {
             message.error(result.error || 'Could not add the images to the graph');
         }
@@ -104,8 +107,12 @@ const SelectionToolbar = () => {
 
     if (count === 0) return null;
 
-    return (
-        <div className="gallery-selection-toolbar selectedImagesActionButton" onClick={(event) => event.stopPropagation()}>
+    const toolbar = (
+        <div
+            className={`gallery-selection-toolbar${overlay ? ` gallery-selection-toolbar-overlay ${galleryThemeClass(effectiveDarkMode)}` : ''}`}
+            style={overlay ? { position: 'fixed', zIndex: 2147483000 } : undefined}
+            onClick={(event) => event.stopPropagation()}
+        >
             <span className="gallery-selection-count">{count} selected</span>
             {count < selectableImages.length && (
                 <Tooltip title="Select all visible assets (Ctrl+A)">
@@ -114,7 +121,7 @@ const SelectionToolbar = () => {
                     </Button>
                 </Tooltip>
             )}
-            <Tooltip title="Add selected images to the active graph">
+            <Tooltip title="Add selected assets to the active graph">
                 <Button
                     size="small"
                     icon={<PlusSquareOutlined />}
@@ -145,6 +152,8 @@ const SelectionToolbar = () => {
             </Tooltip>
         </div>
     );
+
+    return overlay ? createPortal(toolbar, document.body) : toolbar;
 };
 
 export default SelectionToolbar;

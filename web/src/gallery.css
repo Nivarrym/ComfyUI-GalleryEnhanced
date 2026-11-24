@@ -266,6 +266,11 @@
     justify-content: center;
 }
 
+.gallery-selection-toolbar-overlay {
+    z-index: 2147483000;
+    pointer-events: auto;
+}
+
 .gallery-selection-count {
     font-weight: 600;
     color: var(--gallery-text);

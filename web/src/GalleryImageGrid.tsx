@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef } from 'react';
+import React, { useMemo, useCallback, useRef, useState } from 'react';
 import { Image, Spin } from 'antd';
 import { useGalleryContext } from './GalleryContext';
 import { MetadataView } from './MetadataView';
@@ -18,6 +18,10 @@ const GalleryImageGrid = () => {
         setImageInfoName,
         previewingVideo,
         setPreviewingVideo,
+        previewMode,
+        setPreviewMode,
+        getPreviewMode,
+        selectImage,
         showRawMetadata,
         setShowRawMetadata,
         imagesDetailsList,
@@ -27,8 +31,10 @@ const GalleryImageGrid = () => {
         clearSelection,
     } = useGalleryContext();
     const containerRef = useRef<HTMLDivElement>(null);
+    const [previewOpen, setPreviewOpen] = useState(false);
 
     const handleInfoClick = useCallback((imageName: string) => {
+        setPreviewMode('plain');
         const item = data?.folders?.[currentFolder]?.[imageName];
         if (item && (item.type === 'media' || item.type === 'audio' || item.type === '3d')) {
             setPreviewingVideo(item.name);
@@ -36,7 +42,12 @@ const GalleryImageGrid = () => {
             setPreviewingVideo(undefined);
         }
         setImageInfoName(imageName);
-    }, [setImageInfoName, data, currentFolder, setPreviewingVideo]);
+    }, [setImageInfoName, data, currentFolder, setPreviewMode, setPreviewingVideo]);
+
+    const handleVideoClick = useCallback((imageName: string | undefined) => {
+        setPreviewMode('plain');
+        setPreviewingVideo(imageName);
+    }, [setPreviewMode, setPreviewingVideo]);
 
     const { marquee, onPointerDown } = useBoxSelection({
         containerRef,
@@ -132,17 +143,34 @@ const GalleryImageGrid = () => {
     }, [setImageInfoName, previewableImages]);
 
     const infoAfterOpenChange = useCallback((open: boolean) => {
-        if (!open) setImageInfoName(undefined);
-    }, [setImageInfoName]);
+        setPreviewOpen(open);
+        if (!open) {
+            setImageInfoName(undefined);
+            setPreviewMode(null);
+        }
+    }, [setImageInfoName, setPreviewMode]);
 
-    const videoOnChange = useCallback((current: number) => {
-        const t = previewableImages[current]?.type;
-        if (t == "media" || t == "audio" || t == "3d") {
-            setPreviewingVideo(previewableImages[current]?.name);
+    const imageOnChange = useCallback((current: number) => {
+        const image = previewableImages[current];
+        if (!image) return;
+        if (getPreviewMode() === 'selection') {
+            // The image currently being viewed is the one Delete must target.
+            selectImage(image.url, {});
+        }
+        if (image.type === 'media' || image.type === 'audio' || image.type === '3d') {
+            setPreviewingVideo(image.name);
         } else {
             setPreviewingVideo(undefined);
         }
-    }, [setPreviewingVideo, previewableImages]);
+    }, [getPreviewMode, previewMode, previewableImages, selectImage, setPreviewingVideo]);
+
+    const imageAfterOpenChange = useCallback((open: boolean) => {
+        setPreviewOpen(open);
+        if (!open) {
+            setPreviewingVideo(undefined);
+            setPreviewMode(null);
+        }
+    }, [setPreviewingVideo, setPreviewMode]);
 
     return (
         <div
@@ -166,20 +194,18 @@ const GalleryImageGrid = () => {
                     afterOpenChange: infoAfterOpenChange,
                     destroyOnClose: true
                 } : {
-                    onChange: videoOnChange,
+                    onChange: imageOnChange,
                     imageRender: customImageRender,
                     toolbarRender: () => previewingVideo != undefined ? null : undefined,
                     destroyOnClose: true,
-                    afterOpenChange(open) {
-                        if (!open) setPreviewingVideo(undefined);
-                    },
+                    afterOpenChange: imageAfterOpenChange,
                 }}
             >
                 <GalleryGridBody
                     imagesDetailsList={imagesDetailsList}
                     currentFolder={currentFolder}
                     onInfoClick={handleInfoClick}
-                    onVideoClick={setPreviewingVideo}
+                    onVideoClick={handleVideoClick}
                 />
             </Image.PreviewGroup>
 
@@ -195,7 +221,7 @@ const GalleryImageGrid = () => {
                 />
             )}
 
-            <SelectionToolbar />
+            <SelectionToolbar overlay={previewOpen && previewMode === 'selection'} />
         </div>
     );
 };

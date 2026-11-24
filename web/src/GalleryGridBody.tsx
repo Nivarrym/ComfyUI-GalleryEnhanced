@@ -39,6 +39,7 @@ const GalleryGridBody = ({ imagesDetailsList, currentFolder, onInfoClick, onVide
         selectImage,
         deleteAssets,
         setPreviewingVideo,
+        setPreviewMode,
     } = useGalleryContext();
     const scrollRef = useRef<HTMLDivElement>(null);
     const [endlessLimit, setEndlessLimit] = useState(ENDLESS_INITIAL);
@@ -135,6 +136,7 @@ const GalleryGridBody = ({ imagesDetailsList, currentFolder, onInfoClick, onVide
                                             selectImage={selectImage}
                                             deleteAssets={deleteAssets}
                                             setPreviewingVideo={setPreviewingVideo}
+                                            setPreviewMode={setPreviewMode}
                                         />
                                     ))}
                                 </div>

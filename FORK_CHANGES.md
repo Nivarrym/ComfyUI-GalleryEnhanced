@@ -67,6 +67,19 @@ is the unmodified 2.7.1 import.
 - Card and multi-selection graph shortcuts map `image` → image node,
   `media` → video node, `audio` → audio node.
 
+### Selection-aware previews
+
+- Clicking an image card opens a selection preview: the viewed image is selected
+  (or kept in an existing multi-selection), and paging through the preview calls
+  `selectImage` for the newly viewed image. Delete therefore targets what is on
+  screen.
+- In selection mode the selection action toolbar is portalled above the Ant
+  preview mask with a very high z-index, so Add/Download/Delete remain usable.
+- A new magnifier card action opens a plain preview. It does not select the
+  asset, does not show the selection overlay, and the global Delete/Backspace
+  handler ignores the key while `previewMode !== 'selection'`.
+- Metadata/video/audio/3D previews use the same plain mode.
+
 ## Gallery graph shortcuts
 
 - Every image card has an **Add to active graph** action that creates a

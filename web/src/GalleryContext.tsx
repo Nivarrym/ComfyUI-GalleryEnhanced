@@ -12,6 +12,7 @@ import { assetUrl } from './assetUrls';
 import { perfMark, perfMeasure, setPerfEnabled } from './perf';
 
 export type PageMode = 'endless' | 20 | 40 | 60 | 100 | 200;
+export type PreviewMode = 'selection' | 'plain' | null;
 
 export interface SettingsState {
     relativePath: string;
@@ -97,6 +98,9 @@ export interface GalleryContextType {
     setOpen: Dispatch<SetStateAction<boolean>>;
     previewingVideo: string | undefined;
     setPreviewingVideo: Dispatch<SetStateAction<string | undefined>>;
+    previewMode: PreviewMode;
+    setPreviewMode: (mode: PreviewMode) => void;
+    getPreviewMode: () => PreviewMode;
     size: ReturnType<typeof useSize>;
     imagesBoxSize: ReturnType<typeof useSize>;
     data: FilesTree | undefined;
@@ -173,6 +177,15 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [imageInfoName, setImageInfoName] = useState<string | undefined>(undefined);
     const [open, setOpen] = useState(false);
     const [previewingVideo, setPreviewingVideo] = useState<string | undefined>(undefined);
+    const [previewMode, setPreviewModeState] = useState<PreviewMode>(null);
+    const previewModeRef = useRef<PreviewMode>(null);
+    const setPreviewMode = useCallback((mode: PreviewMode) => {
+        // Keep a synchronous copy: Ant preview can fire onChange before React
+        // commits the state update from a card action.
+        previewModeRef.current = mode;
+        setPreviewModeState(mode);
+    }, []);
+    const getPreviewMode = useCallback(() => previewModeRef.current, []);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [selectionAnchor, setSelectionAnchor] = useState<string | undefined>(undefined);
     const [siderCollapsed, setSiderCollapsed] = useState(true);
@@ -636,6 +649,12 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
             return;
         }
         if ((event.code === 'Delete' || event.code === 'Backspace') && selectedImages.length > 0) {
+            // A plain preview is a read-only viewer: Delete must not touch the
+            // selection while it is open. Selection previews explicitly allow it.
+            if (document.querySelector('.ant-image-preview-root') && previewModeRef.current !== 'selection') {
+                event.preventDefault();
+                return;
+            }
             event.preventDefault();
             window.dispatchEvent(new CustomEvent('gallery:delete-selected'));
         }
@@ -651,6 +670,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         imageInfoName, setImageInfoName,
         open, setOpen,
         previewingVideo, setPreviewingVideo,
+        previewMode, setPreviewMode, getPreviewMode,
         size, imagesBoxSize,
         data, dataRevision, error, loading, runAsync, mutate,
         imagesDetailsList,
@@ -692,6 +712,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         imageInfoName,
         open,
         previewingVideo,
+        previewMode,
+        setPreviewMode,
+        getPreviewMode,
         size,
         imagesBoxSize,
         data,
