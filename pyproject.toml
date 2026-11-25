@@ -18,12 +18,12 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Nivarrym/ComfyUI-Gallery-Fork"
-Documentation = "https://github.com/Nivarrym/ComfyUI-Gallery-Fork/blob/main/README.md"
-"Bug Tracker" = "https://github.com/Nivarrym/ComfyUI-Gallery-Fork/issues"
+Repository = "https://github.com/Nivarrym/GalleryEnhanced"
+Documentation = "https://github.com/Nivarrym/GalleryEnhanced/blob/main/README.md"
+"Bug Tracker" = "https://github.com/Nivarrym/GalleryEnhanced/issues"
 Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
 
 [tool.comfy]
 PublisherId = "nivarrym"
 DisplayName = "GalleryEnhanced"
-Icon = "https://raw.githubusercontent.com/Nivarrym/ComfyUI-Gallery-Fork/main/icon.png"
+Icon = "https://raw.githubusercontent.com/Nivarrym/GalleryEnhanced/main/icon.png"
