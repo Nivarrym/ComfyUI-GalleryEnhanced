@@ -2,7 +2,7 @@
 
 ## Fork maintainer
 
-**KagePC**
+**Nivarrym**
 
 This repository is a personal fork of ComfyUI Gallery, maintained as
 `ComfyUI-Gallery-Fork`.
