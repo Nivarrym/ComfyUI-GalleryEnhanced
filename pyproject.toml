@@ -1,15 +1,29 @@
 [project]
-name = "ComfyUI-Gallery-Fork"
-description = "Personal fork of ComfyUI Gallery: real-time gallery, metadata inspection, graph shortcuts and output-folder image loading."
+name = "comfy-gallery-fork"
 version = "2.20.2"
+description = "Fast ComfyUI output gallery with batch selection, trash/favorites, quick cleanup, folder editing, A/B comparison, mask editing, and gallery loader nodes."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
 authors = [{ name = "Nivarrym" }]
-license = {file = "LICENSE"} 
+dependencies = [
+    "aiohttp",
+    "Pillow>=9.5.0",
+    "watchdog",
+]
+classifiers = [
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
 
 [project.urls]
+Repository = "https://github.com/Nivarrym/ComfyUI-Gallery-Fork"
+Documentation = "https://github.com/Nivarrym/ComfyUI-Gallery-Fork/blob/main/README.md"
+"Bug Tracker" = "https://github.com/Nivarrym/ComfyUI-Gallery-Fork/issues"
 Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
-#  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
 PublisherId = "nivarrym"
 DisplayName = "ComfyUI Gallery Fork"
-Icon = "https://raw.githubusercontent.com/PanicTitan/ComfyUI-Gallery/refs/heads/main/logo.png"
+Icon = "https://raw.githubusercontent.com/Nivarrym/ComfyUI-Gallery-Fork/main/icon.png"
