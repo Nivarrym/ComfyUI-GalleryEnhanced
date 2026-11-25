@@ -1,0 +1,7 @@
+# Keep development-only files out of the Comfy Registry archive.
+# They remain available in the GitHub repository.
+.github/
+tests/
+FORK_CHANGES.md
+AGENTS.md
+install-local.ps1

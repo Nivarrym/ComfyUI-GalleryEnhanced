@@ -1,4 +1,4 @@
-# ComfyUI Gallery — Fork
+# GalleryEnhanced
 
 > Fork of [PanicTitan/ComfyUI-Gallery](https://github.com/PanicTitan/ComfyUI-Gallery).
 > Original project by PanicTitan; this fork is maintained by Nivarrym.

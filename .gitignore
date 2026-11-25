@@ -11,6 +11,11 @@ web/.tmp/
 web/dist/.vite/
 .test-tmp/
 .gallery-thumbs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
 
 # Local-only development helpers
 install-local.ps1
