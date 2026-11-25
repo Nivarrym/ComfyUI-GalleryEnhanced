@@ -167,14 +167,8 @@ is the unmodified 2.7.1 import.
 
 ### Unload Models node
 
-- New `Unload Models` output node in `utils`.
-- Calls `comfy.model_management.unload_all_models()` and
-  `soft_empty_cache(force=True)`; falls back for older ComfyUI versions without
-  the `force` argument.
-- No required inputs; an optional wildcard `trigger` input can be connected when
-  the unload must run after a particular loader.
-- `IS_CHANGED` always returns `NaN`, so the output node runs on every queue even
-  though it has no inputs.
+Moved to the separate [Nivarrym_nodes](https://github.com/Nivarrym/Nivarrym_nodes)
+package, where it is available as `Nivarrym/Utils → Unload Models`.
 
 ### Sorting and settings
 

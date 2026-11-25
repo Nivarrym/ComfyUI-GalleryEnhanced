@@ -12,6 +12,8 @@ starting from upstream **2.7.1**. Maintained by **Nivarrym**.
   background and text colors resolve in light and dark mode.
 - Right-clicking empty sidebar space below the folder tree now opens the same
   folder context menu for the current folder.
+- `Unload Models` moved out of the gallery package to the separate
+  `Nivarrym_nodes` package.
 
 ## 2.20.1
 
@@ -136,7 +138,7 @@ starting from upstream **2.7.1**. Maintained by **Nivarrym**.
 - `Load Image From Gallery` (IMAGE + MASK) recursively scans the output folder,
   with EXIF orientation, alpha and animated frames.
 - `Load Video From Gallery` (VIDEO) and `Load Audio From Gallery` (AUDIO).
-- `Unload Models` utility node with optional wildcard trigger.
+- `Unload Models` moved to the separate `Nivarrym_nodes` package.
 - Add to active graph (including subgraphs) with visible-slot placement.
 - In-node image preview for `Load Image From Gallery`, refreshed from the file
   widget.
