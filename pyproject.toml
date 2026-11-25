@@ -1,5 +1,5 @@
 [project]
-name = "comfy-gallery-fork"
+name = "gallery-enhanced"
 version = "2.20.2"
 description = "Fast ComfyUI output gallery with batch selection, trash/favorites, quick cleanup, folder editing, A/B comparison, mask editing, and gallery loader nodes."
 readme = "README.md"
@@ -25,5 +25,5 @@ Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
 
 [tool.comfy]
 PublisherId = "nivarrym"
-DisplayName = "ComfyUI Gallery Fork"
+DisplayName = "GalleryEnhanced"
 Icon = "https://raw.githubusercontent.com/Nivarrym/ComfyUI-Gallery-Fork/main/icon.png"
