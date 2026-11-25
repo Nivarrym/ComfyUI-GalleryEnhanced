@@ -943,3 +943,25 @@
 .gallery-folder-context-menu button.is-danger {
     color: #ff4d4f;
 }
+
+.gallery-quick-delete p {
+    margin: 0 0 14px;
+}
+
+.gallery-quick-delete-dates {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.gallery-quick-delete-dates label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+}
+
+.gallery-quick-delete-dates label > span {
+    font-weight: 600;
+}

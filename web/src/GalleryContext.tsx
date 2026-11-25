@@ -658,7 +658,19 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         if (anchorRef.current && removed.has(anchorRef.current)) {
             setSelectionAnchor(undefined);
         }
-    }, [mutate]);
+        setAssetTags((previous) => {
+            if (!previous) return {};
+            const next = { ...previous };
+            let changed = false;
+            for (const url of removed) {
+                if (next[url]) {
+                    delete next[url];
+                    changed = true;
+                }
+            }
+            return changed ? next : previous;
+        });
+    }, [mutate, setAssetTags]);
 
     const deleteAssets = useCallback(async (urls: string[]): Promise<DeleteResult> => {
         const result = await ComfyAppApi.deleteImages(urls);

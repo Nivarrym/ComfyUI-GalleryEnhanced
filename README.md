@@ -16,6 +16,17 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 > dark theme, and a reworked lazy/thumbnail performance path. See
 > [FORK_CHANGES.md](FORK_CHANGES.md) for the full list and API additions.
 
+## Fork changes at a glance
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete list.
+
+- Multi-select, marquee selection, batch ZIP download/delete and folder-wide selection.
+- Faster lazy scanning, cached thumbnails, lazy metadata and performance diagnostics.
+- Complete dark theme, resizable sidebar, card-size slider and pagination modes.
+- Selection-aware previews, video hover playback, 3D/audio previews and metadata tools.
+- Gallery graph loaders, Add/Replace node actions and in-node image previews.
+- Two-asset comparison, built-in mask editor, trash/favorites, filters, folder editing and quick trash cleanup.
+
 ## Key Features:
 
 *   **Real-time Gallery Updates:** Leveraging ComfyUI's event system, the gallery instantly reflects new images, videos, and GIFs saved to your ComfyUI output folder and no manual refresh needed!
@@ -54,6 +65,7 @@ This ComfyUI custom node provides a feature-rich, real-time gallery directly wit
 *   **Add to Graph (v2.15.0, video/audio in v2.16.0):** Card and multi-selection action buttons insert the matching `Load Image / Video / Audio From Gallery` node into the active graph, pre-selected to the chosen asset.
 *   **Graph preview (v2.18.0):** `Load Image From Gallery` nodes display the selected image inside the node; the preview updates with the file dropdown and Add to Graph.
 *   **Compare mode (v2.19.0, fit/anchor in v2.19.1, overlay/fade controls in v2.19.2–2.19.4):** With exactly two images/videos selected, the toolbar opens a wipe comparison with horizontal/vertical divider, an Overlay toggle (with tooltip), side-by-side mode and fade-by-dragging anywhere over the image with a fixed 360 px sensitivity. A is the reference; B can fit/fill/stretch/original/match width or height and be anchored anywhere on A; Swap A/B swaps the reference and target.
+*   **Quick delete trash (v2.20.1):** Top-bar trash button opens a confirmation with optional From/To date-time limits; only marked assets inside the range are deleted.
 *   **Preview dismiss (v2.20.0):** Clicking the dark area around an open preview closes it while the gallery stays open.
 *   **Trash and favorites (v2.20.0):** Space toggles a persistent trash mark (muted card + bin icon) and advances the preview to the next unmarked asset; F toggles a favorite star. The top bar filters by All, Favorites or Trash. The "Skip trash when advancing" setting controls the jump.
 *   **Folder hierarchy editing (v2.20.0):** The sidebar has New folder and a custom right-click menu for creating subfolders, renaming and deleting empty folders.
@@ -143,6 +155,9 @@ The backend now supports **global log suppression** and **observer type switchin
 - All custom node logs (not from dependencies) should be suppressed when "Disable Logs" is enabled in the Gallery settings.
 
 ## Changelog
+
+*   **v2.20.1 (fork):**
+    *   **Quick delete trash:** header trash button and confirmation modal with optional From/To date-time range.
 
 *   **v2.20.0 (fork):**
     *   **Preview dismissal:** clicking the dark preview backdrop closes the preview without closing the gallery.

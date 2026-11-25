@@ -65,6 +65,9 @@ is the unmodified 2.7.1 import.
 - The sidebar supports creating folders/subfolders, renaming and deleting empty
   folders through a custom context menu; empty folders remain in the tree.
 - Card Replace updates the selected gallery loader node's widget in place.
+- The header trash button opens a quick-delete confirmation with optional
+  From/To date-time bounds; only trash-marked assets inside the range are
+  deleted.
 
 ### Asset comparison and mask editor
 

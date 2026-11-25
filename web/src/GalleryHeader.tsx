@@ -1,9 +1,11 @@
-import { memo, useEffect, useRef, useState } from 'react';
-import { Flex, AutoComplete, Button, Segmented, Select, Tag, Tooltip, Typography } from 'antd';
-import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined, LeftOutlined, RightOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { Flex, AutoComplete, Button, DatePicker, Modal, Segmented, Select, Tag, Tooltip, Typography } from 'antd';
+import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined, LeftOutlined, RightOutlined, ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined } from '@ant-design/icons';
+import type { Dayjs } from 'dayjs';
 import { useGalleryContext, type AssetFilter, type PageMode } from './GalleryContext';
 import { useDebounce, useCountDown } from 'ahooks';
 import GallerySizeControl from './GallerySizeControl';
+import { BASE_Z_INDEX } from './ComfyAppApi';
 
 const GalleryHeader = memo(function GalleryHeader() {
     const {
@@ -18,8 +20,57 @@ const GalleryHeader = memo(function GalleryHeader() {
         pageMode, setPageMode,
         pageIndex, setPageIndex, pageCount,
         siderCollapsed, setSiderCollapsed,
-        assetFilter, setAssetFilter
+        assetFilter, setAssetFilter,
+        data,
+        isAssetTrashed,
+        deleteAssets,
     } = useGalleryContext();
+
+    const allAssets = useMemo(
+        () => Object.values(data?.folders ?? {}).flatMap((folder) => Object.values(folder)),
+        [data],
+    );
+    const trashedAssets = useMemo(
+        () => allAssets.filter((asset) => isAssetTrashed(asset.url)),
+        [allAssets, isAssetTrashed],
+    );
+    const [quickDeleteOpen, setQuickDeleteOpen] = useState(false);
+    const [quickDeleting, setQuickDeleting] = useState(false);
+    const [fromDate, setFromDate] = useState<Dayjs | null>(null);
+    const [toDate, setToDate] = useState<Dayjs | null>(null);
+    const invalidDateRange = !!fromDate && !!toDate && fromDate.isAfter(toDate);
+    const eligibleTrash = useMemo(() => {
+        if (invalidDateRange) return [];
+        const from = fromDate ? fromDate.startOf('minute').valueOf() : undefined;
+        const to = toDate ? toDate.endOf('minute').valueOf() : undefined;
+        return trashedAssets.filter((asset) => {
+            const timestamp = (asset.timestamp || 0) * 1000;
+            return (from === undefined || timestamp >= from)
+                && (to === undefined || timestamp <= to);
+        });
+    }, [trashedAssets, fromDate, toDate, invalidDateRange]);
+
+    const openQuickDelete = () => {
+        setFromDate(null);
+        setToDate(null);
+        setQuickDeleteOpen(true);
+    };
+
+    const handleQuickDelete = async () => {
+        if (eligibleTrash.length === 0) return;
+        setQuickDeleting(true);
+        try {
+            const result = await deleteAssets(eligibleTrash.map((asset) => asset.url));
+            if (result.deleted.length > 0) {
+                setQuickDeleteOpen(false);
+            }
+            if (result.failed.length > 0) {
+                console.warn('Quick delete failed for some assets', result.failed);
+            }
+        } finally {
+            setQuickDeleting(false);
+        }
+    };
 
     const [search, setSearch] = useState("");
     const [showClose, setShowClose] = useState(false);
@@ -67,7 +118,8 @@ const GalleryHeader = memo(function GalleryHeader() {
     }, [debouncedSearch, imagesAutoCompleteNames, setAutoCompleteOptions]);
 
     return (
-        <Flex
+        <>
+            <Flex
             justify={"space-between"}
             align={"center"}
             gap={16}
@@ -200,6 +252,17 @@ const GalleryHeader = memo(function GalleryHeader() {
                 ]}
                 aria-label="Filter assets"
             />
+            <Tooltip title={trashedAssets.length > 0 ? `Quick delete ${trashedAssets.length} trashed asset${trashedAssets.length === 1 ? '' : 's'}` : 'No assets marked as trash'}>
+                <Button
+                    danger
+                    type="text"
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    disabled={trashedAssets.length === 0}
+                    onClick={openQuickDelete}
+                    aria-label="Quick delete marked as trash"
+                />
+            </Tooltip>
             <Select<PageMode>
                 className="gallery-page-mode"
                 size="small"
@@ -271,6 +334,54 @@ const GalleryHeader = memo(function GalleryHeader() {
                 }}
             />
         </Flex>
+            <Modal
+                zIndex={BASE_Z_INDEX + 2}
+                title="Quick delete trashed assets"
+                open={quickDeleteOpen}
+                onCancel={() => setQuickDeleteOpen(false)}
+                onOk={handleQuickDelete}
+                okText="Delete"
+                okButtonProps={{ danger: true, loading: quickDeleting, disabled: eligibleTrash.length === 0 }}
+                destroyOnClose
+            >
+                <div className="gallery-quick-delete">
+                    <p>
+                        Marked as trash: <strong>{trashedAssets.length}</strong>.
+                        {' '}In selected range: <strong>{eligibleTrash.length}</strong>.
+                    </p>
+                    <div className="gallery-quick-delete-dates">
+                        <label>
+                            <span>From</span>
+                            <DatePicker
+                                showTime
+                                value={fromDate}
+                                onChange={(value) => setFromDate(value)}
+                                format="YYYY-MM-DD HH:mm"
+                                placeholder="No limit"
+                                style={{ width: '100%' }}
+                            />
+                        </label>
+                        <label>
+                            <span>To</span>
+                            <DatePicker
+                                showTime
+                                value={toDate}
+                                onChange={(value) => setToDate(value)}
+                                format="YYYY-MM-DD HH:mm"
+                                placeholder="No limit"
+                                style={{ width: '100%' }}
+                            />
+                        </label>
+                    </div>
+                    {invalidDateRange && (
+                        <Typography.Text type="danger">The From date must be before the To date.</Typography.Text>
+                    )}
+                    <Typography.Text type="secondary">
+                        Leave both fields empty to delete all marked assets. Assets outside the range are never deleted.
+                    </Typography.Text>
+                </div>
+            </Modal>
+        </>
     );
 });
 
