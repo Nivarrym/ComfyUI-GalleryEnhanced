@@ -50,7 +50,7 @@ is the unmodified 2.7.1 import.
 ## Fork identity
 
 - Repository/package name: **ComfyUI-Gallery-Fork**.
-- Maintainer/author metadata: **KagePC** (`pyproject.toml`, `AUTHORS.md`).
+- Maintainer/author metadata: **Nivarrym** (`pyproject.toml`, `AUTHORS.md`).
 - Upstream attribution: PanicTitan/ComfyUI-Gallery remains credited in
   `README.md`, `AUTHORS.md` and the upstream repository URL.
 

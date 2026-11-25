@@ -2,7 +2,7 @@
 
 All notable changes in **ComfyUI-Gallery-Fork** relative to the upstream
 [PanicTitan/ComfyUI-Gallery](https://github.com/PanicTitan/ComfyUI-Gallery),
-starting from upstream **2.7.1**. Maintained by **KagePC**.
+starting from upstream **2.7.1**. Maintained by **Nivarrym**.
 
 ## 2.20.1
 
@@ -144,7 +144,7 @@ starting from upstream **2.7.1**. Maintained by **KagePC**.
 
 ### Fork identity
 
-- Package/repository name `ComfyUI-Gallery-Fork`, author metadata **KagePC**,
+- Package/repository name `ComfyUI-Gallery-Fork`, author metadata **Nivarrym**,
   upstream attribution retained.
 
 ## Known limitations

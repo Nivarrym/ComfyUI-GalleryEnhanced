@@ -2,7 +2,7 @@
     "name": "comfy-ui-gallery-react-fork",
     "private": true,
     "version": "2.20.1",
-    "author": "KagePC",
+    "author": "Nivarrym",
     "type": "module",
     "scripts": {
         "dev": "vite --host",

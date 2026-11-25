@@ -2,7 +2,7 @@
 name = "ComfyUI-Gallery-Fork"
 description = "Personal fork of ComfyUI Gallery: real-time gallery, metadata inspection, graph shortcuts and output-folder image loading."
 version = "2.20.1"
-authors = [{ name = "KagePC" }]
+authors = [{ name = "Nivarrym" }]
 license = {file = "LICENSE"} 
 
 [project.urls]
@@ -10,6 +10,6 @@ Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = "kagepc"
+PublisherId = "nivarrym"
 DisplayName = "ComfyUI Gallery Fork"
 Icon = "https://raw.githubusercontent.com/PanicTitan/ComfyUI-Gallery/refs/heads/main/logo.png"
