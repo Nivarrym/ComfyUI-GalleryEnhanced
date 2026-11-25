@@ -9,6 +9,7 @@ import FolderAddOutlined from '@ant-design/icons/lib/icons/FolderAddOutlined';
 import EditOutlined from '@ant-design/icons/lib/icons/EditOutlined';
 import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
 import { ComfyAppApi, BASE_Z_INDEX } from './ComfyAppApi';
+import { galleryThemeClass } from './theme';
 
 interface TreeDataNode {
     title: string;
@@ -142,7 +143,7 @@ const FolderTitle = memo(({ nodeData }: { nodeData: any }) => {
 });
 
 const GallerySidebar = memo(function GallerySidebar() {
-    const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings, clearSelection, runAsync } = useGalleryContext();
+    const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings, clearSelection, runAsync, effectiveDarkMode } = useGalleryContext();
     const { message } = App.useApp();
     // Only recalculate treeData if folder structure actually changes
     const treeData = useMemo(() => {
@@ -177,6 +178,43 @@ const GallerySidebar = memo(function GallerySidebar() {
             window.removeEventListener('keydown', onKey);
         };
     }, [folderMenu]);
+
+    const findFolderTitle = useCallback((key: string): string => {
+        let title = '';
+        const visit = (nodes: TreeDataNode[]) => {
+            for (const node of nodes) {
+                if (node.key === key) {
+                    title = node.title;
+                    return;
+                }
+                if (node.children) visit(node.children);
+                if (title) return;
+            }
+        };
+        visit(treeData);
+        return title || key.split('/').filter(Boolean).pop() || 'output';
+    }, [treeData]);
+
+    const openFolderMenuAt = useCallback((x: number, y: number, key: string, title: string) => {
+        setFolderMenu({
+            x: Math.max(8, Math.min(x, window.innerWidth - 190)),
+            y: Math.max(8, Math.min(y, window.innerHeight - 130)),
+            key,
+            title,
+        });
+    }, []);
+
+    const handleSidebarContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        const target = event.target as HTMLElement;
+        // The tree's own onRightClick handler owns folder rows.
+        if (target.closest('.ant-tree-treenode') || target.closest('.gallery-folder-context-menu')) {
+            return;
+        }
+        const key = currentFolder || Object.keys(data?.folders ?? {}).sort()[0];
+        if (!key) return;
+        openFolderMenuAt(event.clientX, event.clientY, key, findFolderTitle(key));
+    };
 
     const openCreateDialog = (parentKey: string) => {
         setFolderMenu(null);
@@ -307,7 +345,7 @@ const GallerySidebar = memo(function GallerySidebar() {
                     height: '100%'
                 }}
                 ref={sidebarRef}
-                onContextMenu={(event) => event.preventDefault()}
+                onContextMenu={handleSidebarContextMenu}
             >
                 <div className="gallery-sidebar-toolbar">
                     <Button
@@ -332,21 +370,19 @@ const GallerySidebar = memo(function GallerySidebar() {
                     onRightClick={(info: any) => {
                         info.event.preventDefault();
                         info.event.stopPropagation();
-                        const x = Math.min(info.event.clientX, window.innerWidth - 190);
-                        const y = Math.min(info.event.clientY, window.innerHeight - 130);
-                        setFolderMenu({
-                            x: Math.max(8, x),
-                            y: Math.max(8, y),
-                            key: String(info.node.key),
-                            title: String(info.node.title ?? info.node.key),
-                        });
+                        openFolderMenuAt(
+                            info.event.clientX,
+                            info.event.clientY,
+                            String(info.node.key),
+                            String(info.node.title ?? info.node.key),
+                        );
                     }}
                 />
             </div>
 
             {folderMenu && createPortal(
                 <div
-                    className="gallery-folder-context-menu"
+                    className={`gallery-folder-context-menu ${galleryThemeClass(effectiveDarkMode)}`}
                     style={{
                         left: folderMenu.x,
                         top: folderMenu.y,

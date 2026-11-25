@@ -156,6 +156,9 @@ The backend now supports **global log suppression** and **observer type switchin
 
 ## Changelog
 
+*   **v2.20.2 (fork):**
+    *   **Sidebar menu fix:** the folder context menu now has a themed background and also opens from empty sidebar space for the current folder.
+
 *   **v2.20.1 (fork):**
     *   **Quick delete trash:** header trash button and confirmation modal with optional From/To date-time range.
 

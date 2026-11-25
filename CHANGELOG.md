@@ -4,6 +4,15 @@ All notable changes in **ComfyUI-Gallery-Fork** relative to the upstream
 [PanicTitan/ComfyUI-Gallery](https://github.com/PanicTitan/ComfyUI-Gallery),
 starting from upstream **2.7.1**. Maintained by **Nivarrym**.
 
+## 2.20.2
+
+### Folder sidebar context menu
+
+- Added the gallery theme class to the portalled folder context menu so its
+  background and text colors resolve in light and dark mode.
+- Right-clicking empty sidebar space below the folder tree now opens the same
+  folder context menu for the current folder.
+
 ## 2.20.1
 
 ### Quick delete trashed assets

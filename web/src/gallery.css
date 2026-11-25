@@ -918,7 +918,7 @@
     padding: 6px;
     border: 1px solid var(--gallery-border-strong);
     border-radius: 8px;
-    background: var(--gallery-bg-elevated);
+    background: var(--gallery-bg-elevated, #1f1f1f);
     box-shadow: var(--gallery-shadow);
 }
 
