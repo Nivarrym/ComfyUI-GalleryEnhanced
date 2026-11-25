@@ -165,6 +165,26 @@ async function postAssetAction(url: string, imagePath: string): Promise<AssetAct
     }
 }
 
+async function postFolderAction(url: string, body: Record<string, unknown>): Promise<AssetActionResult> {
+    try {
+        const response = await app.api.fetchApi(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        let payload: any = undefined;
+        try {
+            payload = await response.json();
+        } catch { }
+        if (response.ok && payload?.ok !== false) {
+            return { ok: true };
+        }
+        return { ok: false, error: payload?.error || `HTTP ${response.status}` };
+    } catch (error) {
+        return { ok: false, error: String(error) };
+    }
+}
+
 export const ComfyAppApi = {
     startMonitoring: (relativePath: string, disableLogs?: boolean, usePollingObserver?: boolean, scanExtensions?: string[], deduplicateSymlinks?: boolean, debugPerf?: boolean) =>
         app.api.fetchApi("/Gallery/monitor/start", {
@@ -276,6 +296,12 @@ export const ComfyAppApi = {
         postAssetAction('/Gallery/reveal', imagePath),
     openAsset: (imagePath: string): Promise<AssetActionResult> =>
         postAssetAction('/Gallery/open', imagePath),
+    createFolder: (parentPath: string, name: string): Promise<AssetActionResult> =>
+        postFolderAction('/Gallery/folders/create', { parent_path: parentPath, name }),
+    renameFolder: (folderPath: string, newName: string): Promise<AssetActionResult> =>
+        postFolderAction('/Gallery/folders/rename', { folder_path: folderPath, new_name: newName }),
+    deleteFolder: (folderPath: string): Promise<AssetActionResult> =>
+        postFolderAction('/Gallery/folders/delete', { folder_path: folderPath }),
     // Settings endpoints
     fetchSettings: async () => {
         try {

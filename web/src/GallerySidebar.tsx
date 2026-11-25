@@ -1,10 +1,14 @@
 import React, { useMemo, useCallback, memo, useRef, useState, useEffect } from 'react';
-import { Tree, Spin } from 'antd';
+import { createPortal } from 'react-dom';
+import { App, Button, Input, Modal, Tree, Spin } from 'antd';
 import { useGalleryContext } from './GalleryContext';
 import type { FilesTree } from './types';
 import { useDrop, useCountDown } from 'ahooks';
 import FolderOutlined from '@ant-design/icons/lib/icons/FolderOutlined';
-import { ComfyAppApi } from './ComfyAppApi';
+import FolderAddOutlined from '@ant-design/icons/lib/icons/FolderAddOutlined';
+import EditOutlined from '@ant-design/icons/lib/icons/EditOutlined';
+import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
+import { ComfyAppApi, BASE_Z_INDEX } from './ComfyAppApi';
 
 interface TreeDataNode {
     title: string;
@@ -13,6 +17,21 @@ interface TreeDataNode {
     children?: TreeDataNode[];
     isLeaf?: boolean;
 }
+
+type FolderDialogState = {
+    mode: 'create' | 'rename' | 'delete';
+    parentKey?: string;
+    folderKey?: string;
+    name: string;
+    title: string;
+};
+
+type FolderMenuState = {
+    x: number;
+    y: number;
+    key: string;
+    title: string;
+};
 
 // Optimize foldersToTreeData: avoid unnecessary array mutation, use const, and avoid .sort() if not needed
 const foldersToTreeData = (data: FilesTree): TreeDataNode[] => {
@@ -123,7 +142,8 @@ const FolderTitle = memo(({ nodeData }: { nodeData: any }) => {
 });
 
 const GallerySidebar = memo(function GallerySidebar() {
-    const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings, clearSelection } = useGalleryContext();
+    const { data, loading, currentFolder, setCurrentFolder, setOpen, siderCollapsed, settings, clearSelection, runAsync } = useGalleryContext();
+    const { message } = App.useApp();
     // Only recalculate treeData if folder structure actually changes
     const treeData = useMemo(() => {
         if (loading || !data) return [];
@@ -132,6 +152,9 @@ const GallerySidebar = memo(function GallerySidebar() {
     const sidebarRef = useRef<HTMLDivElement>(null);
     const [showClose, setShowClose] = useState(false);
     const [targetDate, setTargetDate] = useState<number>();
+    const [folderMenu, setFolderMenu] = useState<FolderMenuState | null>(null);
+    const [folderDialog, setFolderDialog] = useState<FolderDialogState | null>(null);
+    const [folderBusy, setFolderBusy] = useState(false);
     const [countdown] = useCountDown({
         targetDate,
         onEnd: () => {
@@ -140,6 +163,103 @@ const GallerySidebar = memo(function GallerySidebar() {
             setTargetDate(undefined);
         },
     });
+
+    useEffect(() => {
+        if (!folderMenu) return;
+        const close = () => setFolderMenu(null);
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') close();
+        };
+        window.addEventListener('pointerdown', close);
+        window.addEventListener('keydown', onKey);
+        return () => {
+            window.removeEventListener('pointerdown', close);
+            window.removeEventListener('keydown', onKey);
+        };
+    }, [folderMenu]);
+
+    const openCreateDialog = (parentKey: string) => {
+        setFolderMenu(null);
+        setFolderDialog({ mode: 'create', parentKey, name: '', title: 'New folder' });
+    };
+
+    const openRenameDialog = (folder: FolderMenuState) => {
+        setFolderMenu(null);
+        setFolderDialog({
+            mode: 'rename',
+            folderKey: folder.key,
+            name: folder.title,
+            title: 'Rename folder',
+        });
+    };
+
+    const openDeleteDialog = (folder: FolderMenuState) => {
+        setFolderMenu(null);
+        setFolderDialog({
+            mode: 'delete',
+            folderKey: folder.key,
+            name: folder.title,
+            title: 'Delete folder',
+        });
+    };
+
+    const submitFolderDialog = async () => {
+        if (!folderDialog) return;
+        const name = folderDialog.name.trim();
+        if (folderDialog.mode !== 'delete' && !name) {
+            message.error('Folder name is required');
+            return;
+        }
+        setFolderBusy(true);
+        try {
+            let result;
+            if (folderDialog.mode === 'create') {
+                const parentKey = folderDialog.parentKey || currentFolder;
+                result = await ComfyAppApi.createFolder(parentKey, name);
+                if (result.ok) {
+                    await runAsync();
+                    setCurrentFolder(`${parentKey}/${name}`);
+                }
+            } else if (folderDialog.mode === 'rename') {
+                const folderKey = folderDialog.folderKey!;
+                result = await ComfyAppApi.renameFolder(folderKey, name);
+                if (result.ok) {
+                    const slash = folderKey.lastIndexOf('/');
+                    const newKey = slash >= 0 ? `${folderKey.slice(0, slash)}/${name}` : name;
+                    await runAsync();
+                    setCurrentFolder((folder) => (
+                        folder === folderKey || folder.startsWith(`${folderKey}/`)
+                            ? folder.replace(folderKey, newKey)
+                            : folder
+                    ));
+                }
+            } else {
+                result = await ComfyAppApi.deleteFolder(folderDialog.folderKey!);
+                if (result.ok) {
+                    await runAsync();
+                    setCurrentFolder((folder) => {
+                        if (folder === folderDialog.folderKey || folder.startsWith(`${folderDialog.folderKey}/`)) {
+                            const parent = folderDialog.folderKey!.slice(0, folderDialog.folderKey!.lastIndexOf('/'));
+                            return parent || folder;
+                        }
+                        return folder;
+                    });
+                }
+            }
+            if (!result.ok) {
+                message.error(result.error || 'Folder operation failed');
+                return;
+            }
+            message.success(
+                folderDialog.mode === 'create' ? 'Folder created'
+                    : folderDialog.mode === 'rename' ? 'Folder renamed'
+                        : 'Folder deleted',
+            );
+            setFolderDialog(null);
+        } finally {
+            setFolderBusy(false);
+        }
+    };
 
     // Track if an image is being dragged
     useEffect(() => {
@@ -187,7 +307,17 @@ const GallerySidebar = memo(function GallerySidebar() {
                     height: '100%'
                 }}
                 ref={sidebarRef}
+                onContextMenu={(event) => event.preventDefault()}
             >
+                <div className="gallery-sidebar-toolbar">
+                    <Button
+                        size="small"
+                        icon={<FolderAddOutlined />}
+                        onClick={() => openCreateDialog(currentFolder)}
+                    >
+                        New folder
+                    </Button>
+                </div>
                 <Tree.DirectoryTree
                     // @ts-ignore
                     // height={"100%"}
@@ -199,8 +329,72 @@ const GallerySidebar = memo(function GallerySidebar() {
                     treeData={treeData}
                     titleRender={renderTreeTitle}
                     expandAction={false} // Prevent collapse/expand on click
+                    onRightClick={(info: any) => {
+                        info.event.preventDefault();
+                        info.event.stopPropagation();
+                        const x = Math.min(info.event.clientX, window.innerWidth - 190);
+                        const y = Math.min(info.event.clientY, window.innerHeight - 130);
+                        setFolderMenu({
+                            x: Math.max(8, x),
+                            y: Math.max(8, y),
+                            key: String(info.node.key),
+                            title: String(info.node.title ?? info.node.key),
+                        });
+                    }}
                 />
             </div>
+
+            {folderMenu && createPortal(
+                <div
+                    className="gallery-folder-context-menu"
+                    style={{
+                        left: folderMenu.x,
+                        top: folderMenu.y,
+                        zIndex: BASE_Z_INDEX + 2,
+                    }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    role="menu"
+                >
+                    <button type="button" role="menuitem" onClick={() => openCreateDialog(folderMenu.key)}>
+                        <FolderAddOutlined /> New subfolder
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => openRenameDialog(folderMenu)}>
+                        <EditOutlined /> Rename
+                    </button>
+                    <button type="button" role="menuitem" className="is-danger" onClick={() => openDeleteDialog(folderMenu)}>
+                        <DeleteOutlined /> Delete
+                    </button>
+                </div>,
+                document.body,
+            )}
+
+            <Modal
+                zIndex={BASE_Z_INDEX + 2}
+                title={folderDialog?.title}
+                open={!!folderDialog}
+                okText={folderDialog?.mode === 'delete' ? 'Delete' : 'Save'}
+                okButtonProps={{ danger: folderDialog?.mode === 'delete', loading: folderBusy }}
+                cancelText="Cancel"
+                onOk={submitFolderDialog}
+                onCancel={() => setFolderDialog(null)}
+                destroyOnClose
+            >
+                {folderDialog?.mode === 'delete' ? (
+                    <div>
+                        Delete <strong>{folderDialog.name}</strong>? Only empty folders can be deleted.
+                    </div>
+                ) : (
+                    <Input
+                        autoFocus
+                        value={folderDialog?.name ?? ''}
+                        placeholder="Folder name"
+                        onChange={(event) => setFolderDialog((previous) => (
+                            previous ? { ...previous, name: event.target.value } : previous
+                        ))}
+                        onPressEnter={submitFolderDialog}
+                    />
+                )}
+            </Modal>
         </div>
     );
 });

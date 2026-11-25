@@ -41,6 +41,11 @@ const GalleryGridBody = ({ imagesDetailsList, currentFolder, onInfoClick, onVide
         setPreviewingVideo,
         setPreviewMode,
         setOpen,
+        isAssetTrashed,
+        isAssetFavorite,
+        toggleAssetTag,
+        setHoveredAssetUrl,
+        setPreviewAssetUrl,
     } = useGalleryContext();
     const scrollRef = useRef<HTMLDivElement>(null);
     const [endlessLimit, setEndlessLimit] = useState(ENDLESS_INITIAL);
@@ -139,6 +144,11 @@ const GalleryGridBody = ({ imagesDetailsList, currentFolder, onInfoClick, onVide
                                             setPreviewingVideo={setPreviewingVideo}
                                             setPreviewMode={setPreviewMode}
                                             setOpen={setOpen}
+                                            trash={isAssetTrashed(image.url)}
+                                            favorite={isAssetFavorite(image.url)}
+                                            onToggleFavorite={() => toggleAssetTag(image.url, 'favorite')}
+                                            setHoveredAssetUrl={setHoveredAssetUrl}
+                                            setPreviewAssetUrl={setPreviewAssetUrl}
                                         />
                                     ))}
                                 </div>

@@ -506,6 +506,87 @@ async def move_image(request):
 
 
 # ---------------------------------------------------------------------------
+# Folder hierarchy editing
+# ---------------------------------------------------------------------------
+
+def _resolve_folder(static_root, raw_path, *, allow_root=False):
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        raise gallery_paths.GalleryPathError("folder_path is required", 400)
+    resolved = gallery_paths.resolve_local_path(static_root, raw_path)
+    if not os.path.isdir(resolved.path):
+        raise gallery_paths.GalleryPathError("Folder not found", 404)
+    if resolved.path == resolved.root and not allow_root:
+        raise gallery_paths.GalleryPathError("The gallery root cannot be changed", 400)
+    return resolved
+
+
+def _safe_folder_name(raw_name):
+    if not isinstance(raw_name, str):
+        raise gallery_paths.GalleryPathError("Folder name is required", 400)
+    name = raw_name.strip()
+    if not name or name in (".", "..") or name.startswith("."):
+        raise gallery_paths.GalleryPathError("Invalid folder name", 400)
+    if any(char in name for char in ("/", "\\", "\x00")) or len(name) > 120:
+        raise gallery_paths.GalleryPathError("Invalid folder name", 400)
+    return name
+
+
+@PromptServer.instance.routes.post("/Gallery/folders/create")
+async def create_gallery_folder(request):
+    try:
+        data = await request.json()
+        parent = _resolve_folder(get_static_root(), data.get("parent_path"), allow_root=True)
+        name = _safe_folder_name(data.get("name"))
+        target = os.path.join(parent.path, name)
+        if os.path.exists(target):
+            return web.json_response({"error": "Folder already exists"}, status=409)
+        os.makedirs(target)
+        scan_service.invalidate()
+        return web.json_response({"ok": True})
+    except gallery_paths.GalleryPathError as e:
+        return web.json_response({"error": str(e)}, status=e.status)
+    except Exception as e:
+        gallery_log(f"Error creating folder: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+
+@PromptServer.instance.routes.post("/Gallery/folders/rename")
+async def rename_gallery_folder(request):
+    try:
+        data = await request.json()
+        folder = _resolve_folder(get_static_root(), data.get("folder_path"))
+        name = _safe_folder_name(data.get("new_name"))
+        target = os.path.join(os.path.dirname(folder.path), name)
+        if os.path.exists(target):
+            return web.json_response({"error": "A folder with that name already exists"}, status=409)
+        os.rename(folder.path, target)
+        scan_service.invalidate()
+        return web.json_response({"ok": True})
+    except gallery_paths.GalleryPathError as e:
+        return web.json_response({"error": str(e)}, status=e.status)
+    except Exception as e:
+        gallery_log(f"Error renaming folder: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+
+@PromptServer.instance.routes.post("/Gallery/folders/delete")
+async def delete_gallery_folder(request):
+    try:
+        data = await request.json()
+        folder = _resolve_folder(get_static_root(), data.get("folder_path"))
+        if os.listdir(folder.path):
+            return web.json_response({"error": "Folder is not empty"}, status=409)
+        os.rmdir(folder.path)
+        scan_service.invalidate()
+        return web.json_response({"ok": True})
+    except gallery_paths.GalleryPathError as e:
+        return web.json_response({"error": str(e)}, status=e.status)
+    except Exception as e:
+        gallery_log(f"Error deleting folder: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+
+# ---------------------------------------------------------------------------
 # External file actions (file manager / default application)
 # ---------------------------------------------------------------------------
 

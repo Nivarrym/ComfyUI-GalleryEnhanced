@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Flex, AutoComplete, Button, Segmented, Select, Tag, Tooltip, Typography } from 'antd';
 import { BugOutlined, CloseSquareFilled, DoubleLeftOutlined, DoubleRightOutlined, LeftOutlined, RightOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { useGalleryContext, type PageMode } from './GalleryContext';
+import { useGalleryContext, type AssetFilter, type PageMode } from './GalleryContext';
 import { useDebounce, useCountDown } from 'ahooks';
 import GallerySizeControl from './GallerySizeControl';
 
@@ -17,7 +17,8 @@ const GalleryHeader = memo(function GalleryHeader() {
         setShowPerf,
         pageMode, setPageMode,
         pageIndex, setPageIndex, pageCount,
-        siderCollapsed, setSiderCollapsed
+        siderCollapsed, setSiderCollapsed,
+        assetFilter, setAssetFilter
     } = useGalleryContext();
 
     const [search, setSearch] = useState("");
@@ -186,6 +187,19 @@ const GalleryHeader = memo(function GalleryHeader() {
                 }}
             />
             <GallerySizeControl />
+            <Select<AssetFilter>
+                className="gallery-asset-filter"
+                size="small"
+                value={assetFilter}
+                onChange={(value) => setAssetFilter(value)}
+                style={{ width: 126, flex: '0 0 auto' }}
+                options={[
+                    { value: 'none', label: 'No filter' },
+                    { value: 'favorite', label: 'Favorites' },
+                    { value: 'trash', label: 'Trash' },
+                ]}
+                aria-label="Filter assets"
+            />
             <Select<PageMode>
                 className="gallery-page-mode"
                 size="small"

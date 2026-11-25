@@ -143,8 +143,9 @@ def _scan_for_images(
                         print(f"Gallery Node: Error processing file {full_path}: {e}")
 
             folder_key = os.path.join(base_path, relative_path).replace("\\", "/") if relative_path else base_path
-            if folder_content:  # Only add folder if it has content
-                folders_data[folder_key] = folder_content
+            # Keep empty folders in the tree so the sidebar can create a folder
+            # and immediately show it (the gallery body simply has no items).
+            folders_data[folder_key] = folder_content
 
         except Exception as e:
             print(f"Gallery Node: Error scanning directory {dir_path}: {e}")

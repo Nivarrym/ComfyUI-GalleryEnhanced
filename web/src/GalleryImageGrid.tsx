@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import { Image, Spin } from 'antd';
 import { useGalleryContext } from './GalleryContext';
 import { MetadataView } from './MetadataView';
@@ -29,9 +29,13 @@ const GalleryImageGrid = () => {
         selectedImages,
         setSelectedImages,
         clearSelection,
+        previewAssetUrl,
+        setPreviewAssetUrl,
+        isAssetTrashed,
     } = useGalleryContext();
     const containerRef = useRef<HTMLDivElement>(null);
     const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewCurrent, setPreviewCurrent] = useState<number | undefined>(undefined);
 
     const handleInfoClick = useCallback((imageName: string) => {
         setPreviewMode('plain');
@@ -162,7 +166,9 @@ const GalleryImageGrid = () => {
 
     const imageOnChange = useCallback((current: number) => {
         const image = previewableImages[current];
+        setPreviewCurrent(current);
         if (!image) return;
+        setPreviewAssetUrl(image.url);
         if (getPreviewMode() === 'selection') {
             // The image currently being viewed is the one Delete must target.
             selectImage(image.url, {});
@@ -172,15 +178,46 @@ const GalleryImageGrid = () => {
         } else {
             setPreviewingVideo(undefined);
         }
-    }, [getPreviewMode, previewMode, previewableImages, selectImage, setPreviewingVideo]);
+    }, [getPreviewMode, previewMode, previewableImages, selectImage, setPreviewAssetUrl, setPreviewingVideo]);
 
     const imageAfterOpenChange = useCallback((open: boolean) => {
         setPreviewOpen(open);
         if (!open) {
             setPreviewingVideo(undefined);
             setPreviewMode(null);
+            setPreviewAssetUrl(undefined);
+            setPreviewCurrent(undefined);
         }
-    }, [setPreviewingVideo, setPreviewMode]);
+    }, [setPreviewAssetUrl, setPreviewingVideo, setPreviewMode]);
+
+    // Space marks the current preview image as trash; move to the next image,
+    // optionally skipping images that already carry the trash mark.
+    useEffect(() => {
+        const advanceAfterTrash = () => {
+            if (!previewOpen || previewableImages.length === 0) return;
+            const currentIndex = previewCurrent ?? previewableImages.findIndex((item) => item.url === previewAssetUrl);
+            if (currentIndex < 0) return;
+            for (let step = 1; step <= previewableImages.length; step += 1) {
+                const nextIndex = (currentIndex + step) % previewableImages.length;
+                const candidate = previewableImages[nextIndex];
+                if (!candidate || candidate.url === previewAssetUrl) continue;
+                if (settings.skipTrashWhenAdvancing && isAssetTrashed(candidate.url)) continue;
+                setPreviewCurrent(nextIndex);
+                setPreviewAssetUrl(candidate.url);
+                return;
+            }
+        };
+        window.addEventListener('gallery:preview-advance', advanceAfterTrash);
+        return () => window.removeEventListener('gallery:preview-advance', advanceAfterTrash);
+    }, [previewOpen, previewCurrent, previewableImages, previewAssetUrl, settings.skipTrashWhenAdvancing, isAssetTrashed, setPreviewAssetUrl]);
+
+    useEffect(() => {
+        setPreviewCurrent((current) => {
+            if (previewableImages.length === 0) return undefined;
+            if (current === undefined) return current;
+            return current >= previewableImages.length ? 0 : current;
+        });
+    }, [previewableImages.length]);
 
     return (
         <div
@@ -198,15 +235,19 @@ const GalleryImageGrid = () => {
             <Image.PreviewGroup
                 items={imagesUrlsLists}
                 preview={(imageInfoName != undefined) ? {
+                    current: previewCurrent,
                     imageRender: customImageRender,
                     toolbarRender: () => null,
                     onChange: infoOnChange,
                     afterOpenChange: infoAfterOpenChange,
+                    maskClosable: true,
                     destroyOnClose: true
                 } : {
+                    current: previewCurrent,
                     onChange: imageOnChange,
                     imageRender: customImageRender,
                     toolbarRender: () => previewingVideo != undefined ? null : undefined,
+                    maskClosable: true,
                     destroyOnClose: true,
                     afterOpenChange: imageAfterOpenChange,
                 }}

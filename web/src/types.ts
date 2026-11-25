@@ -22,6 +22,11 @@ export interface FileDetails {
     version?: string;
 }
 
+export interface AssetTagState {
+    trash?: boolean;
+    favorite?: boolean;
+}
+
 /** True when an asset has real metadata (lazy loading returns `{}` initially). */
 export function hasMetadata(image?: { metadata?: unknown } | null): boolean {
     const metadata = image?.metadata;

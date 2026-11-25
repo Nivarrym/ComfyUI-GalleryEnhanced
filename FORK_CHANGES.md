@@ -54,6 +54,18 @@ is the unmodified 2.7.1 import.
 - Upstream attribution: PanicTitan/ComfyUI-Gallery remains credited in
   `README.md`, `AUTHORS.md` and the upstream repository URL.
 
+### Trash, favorites, folder editing and replace
+
+- Preview backdrop clicks close only the preview.
+- Tags are persisted in `localStorage` under `comfy-ui-gallery-asset-tags`.
+  Space toggles trash and advances to the next image (optionally skipping
+  marked images); F toggles favorite. Trashed cards are muted and show a bin;
+  favorites show a star.
+- The header filter switches between No filter, Favorites and Trash.
+- The sidebar supports creating folders/subfolders, renaming and deleting empty
+  folders through a custom context menu; empty folders remain in the tree.
+- Card Replace updates the selected gallery loader node's widget in place.
+
 ### Asset comparison and mask editor
 
 - Compare is enabled only when exactly two visual assets (image or video) are

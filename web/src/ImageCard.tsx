@@ -10,6 +10,10 @@ import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import PlusSquareOutlined from '@ant-design/icons/lib/icons/PlusSquareOutlined';
 import ZoomInOutlined from '@ant-design/icons/lib/icons/ZoomInOutlined';
 import HighlightOutlined from '@ant-design/icons/lib/icons/HighlightOutlined';
+import StarFilled from '@ant-design/icons/lib/icons/StarFilled';
+import StarOutlined from '@ant-design/icons/lib/icons/StarOutlined';
+import DeleteFilled from '@ant-design/icons/lib/icons/DeleteFilled';
+import SwapOutlined from '@ant-design/icons/lib/icons/SwapOutlined';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import type { Dispatch, SetStateAction } from 'react';
@@ -20,6 +24,7 @@ import { assetUrl } from './assetUrls';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import { GRID_THUMBNAIL_WIDTH, useThumbnail } from './thumbnails';
 import { addGalleryImagesToGraph } from './GalleryGraph';
+import { replaceSelectedGalleryNode } from './GalleryGraph';
 import { openMaskEditor } from './GalleryMask';
 
 const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -87,6 +92,11 @@ const ImageCard = memo(function ImageCard({
     setPreviewingVideo,
     setPreviewMode,
     setOpen,
+    trash,
+    favorite,
+    onToggleFavorite,
+    setHoveredAssetUrl,
+    setPreviewAssetUrl,
 }: {
     image: FileDetails & { dragFolder?: string };
     dragFolder?: string;
@@ -99,6 +109,11 @@ const ImageCard = memo(function ImageCard({
     setPreviewingVideo: Dispatch<SetStateAction<string | undefined>>;
     setPreviewMode: (mode: PreviewMode) => void;
     setOpen: Dispatch<SetStateAction<boolean>>;
+    trash: boolean;
+    favorite: boolean;
+    onToggleFavorite: () => void;
+    setHoveredAssetUrl: Dispatch<SetStateAction<string | undefined>>;
+    setPreviewAssetUrl: Dispatch<SetStateAction<string | undefined>>;
 }) {
     const { message } = App.useApp();
     const dragRef = useRef<HTMLDivElement>(null);
@@ -160,6 +175,7 @@ const ImageCard = memo(function ImageCard({
     }, [image.type, videoHovered]);
 
     const handleCardMouseEnter = (event: React.MouseEvent) => {
+        setHoveredAssetUrl(image.url);
         if (image.type !== 'media') return;
         setVideoHovered(true);
         const video = videoRef.current;
@@ -180,6 +196,7 @@ const ImageCard = memo(function ImageCard({
     };
 
     const handleCardMouseLeave = () => {
+        setHoveredAssetUrl(undefined);
         if (image.type !== 'media') return;
         setVideoHovered(false);
         const video = videoRef.current;
@@ -222,6 +239,7 @@ const ImageCard = memo(function ImageCard({
     // converted into a selection preview.
     const openHiddenPreview = () => {
         suppressPreviewClickRef.current = true;
+        setPreviewAssetUrl(image.url);
         document.getElementById(image.url)?.click();
         window.setTimeout(() => {
             suppressPreviewClickRef.current = false;
@@ -235,10 +253,12 @@ const ImageCard = memo(function ImageCard({
         }
         if (image.type === 'image') {
             setPreviewMode('selection');
+            setPreviewAssetUrl(image.url);
             selectImage(image.url, {});
         } else {
             // Video/audio/3D previews are not selection previews.
             setPreviewMode('plain');
+            setPreviewAssetUrl(image.url);
         }
     };
 
@@ -283,6 +303,18 @@ const ImageCard = memo(function ImageCard({
             message.success(`Added ${image.name} to the active graph`);
         } else {
             message.error(result.error || 'Could not add the image to the graph');
+        }
+    };
+
+    const handleReplaceInGraph = () => {
+        const result = replaceSelectedGalleryNode(
+            { url: image.url, name: image.name, type: image.type as 'image' | 'media' | 'audio' },
+            settings.relativePath,
+        );
+        if (result.ok) {
+            message.success(`Replaced the selected node with ${image.name}`);
+        } else {
+            message.error(result.error || 'Could not replace the selected node');
         }
     };
 
@@ -340,7 +372,7 @@ const ImageCard = memo(function ImageCard({
 
     return (<>
         <div
-            className={`image-card${selected ? ' gallery-card-selected' : ''}`}
+            className={`image-card${selected ? ' gallery-card-selected' : ''}${trash ? ' gallery-card-trash' : ''}`}
             data-asset-url={image.url}
             ref={dragRef}
             style={{
@@ -349,7 +381,7 @@ const ImageCard = memo(function ImageCard({
                 borderRadius: 8,
                 overflow: "hidden",
                 margin: 0,
-                opacity: dragging ? 0.5 : 1,
+                opacity: dragging ? 0.5 : (trash ? 0.62 : 1),
                 display: "flex",
                 alignContent: "center",
                 justifyContent: "center",
@@ -438,7 +470,11 @@ const ImageCard = memo(function ImageCard({
                 />
             </>}
 
-            {selected && <CheckCircleFilled className="gallery-card-selected-check" />}
+            <div className="gallery-card-status">
+                {selected && <CheckCircleFilled className="gallery-card-selected-check" />}
+                {favorite && <StarFilled className="gallery-card-tag gallery-card-tag-favorite" aria-label="Favorite" />}
+                {trash && <DeleteFilled className="gallery-card-tag gallery-card-tag-trash" aria-label="Trash" />}
+            </div>
 
             <div
                 className="gallery-card-actions"
@@ -454,6 +490,16 @@ const ImageCard = memo(function ImageCard({
                         icon={<ZoomInOutlined />}
                         onClick={handlePlainPreview}
                         aria-label={`Preview ${image.name} without selecting`}
+                    />
+                </Tooltip>
+                <Tooltip title={favorite ? 'Remove from favorites (F)' : 'Add to favorites (F)'}>
+                    <Button
+                        className="gallery-card-action"
+                        shape="circle"
+                        size="small"
+                        icon={favorite ? <StarFilled /> : <StarOutlined />}
+                        onClick={onToggleFavorite}
+                        aria-label={`${favorite ? 'Remove' : 'Add'} ${image.name} ${favorite ? 'from' : 'to'} favorites`}
                     />
                 </Tooltip>
                 {image.type === 'image' && (
@@ -477,6 +523,18 @@ const ImageCard = memo(function ImageCard({
                             icon={<PlusSquareOutlined />}
                             onClick={handleAddToGraph}
                             aria-label={`Add ${image.name} to the active graph`}
+                        />
+                    </Tooltip>
+                )}
+                {(image.type === 'image' || image.type === 'media' || image.type === 'audio') && (
+                    <Tooltip title="Replace the selected graph node's asset">
+                        <Button
+                            className="gallery-card-action"
+                            shape="circle"
+                            size="small"
+                            icon={<SwapOutlined />}
+                            onClick={handleReplaceInGraph}
+                            aria-label={`Replace the selected graph node with ${image.name}`}
                         />
                     </Tooltip>
                 )}
@@ -556,6 +614,11 @@ const ImageCard = memo(function ImageCard({
     && prev.setPreviewingVideo === next.setPreviewingVideo
     && prev.setPreviewMode === next.setPreviewMode
     && prev.setOpen === next.setOpen
+    && prev.trash === next.trash
+    && prev.favorite === next.favorite
+    && prev.onToggleFavorite === next.onToggleFavorite
+    && prev.setHoveredAssetUrl === next.setHoveredAssetUrl
+    && prev.setPreviewAssetUrl === next.setPreviewAssetUrl
 ));
 
 export default ImageCard

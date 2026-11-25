@@ -192,8 +192,15 @@ const GallerySettingsModal = () => {
                                 checked={staged.galleryShortcut}
                                 onChange={checked => setStaged({ galleryShortcut: checked })}
                             />
+                            <SettingToggle
+                                label="Skip trash when advancing"
+                                description="After marking trash, preview jumps to the next unmarked image"
+                                checked={staged.skipTrashWhenAdvancing}
+                                onChange={checked => setStaged({ skipTrashWhenAdvancing: checked })}
+                            />
                         </div>
                         <Typography.Text type="secondary" className="gallery-settings-hint">
+                            Space — toggle trash (preview advances) · F — toggle favorite ·
                             Ctrl/Cmd+click — toggle · Shift+click — range · drag empty space — box select ·
                             Ctrl+A — select all · Delete — delete · Esc — clear
                         </Typography.Text>

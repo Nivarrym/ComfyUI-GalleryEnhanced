@@ -6,13 +6,14 @@ import { useEventListener, useLocalStorageState } from 'ahooks';
 import type { AutoCompleteProps } from 'antd/es/auto-complete';
 import type { DeleteResult } from './ComfyAppApi';
 import { ComfyAppApi, OPEN_BUTTON_ID } from './ComfyAppApi';
-import type { FileDetails, FilesTree } from './types';
+import type { FileDetails, FilesTree, AssetTagState } from './types';
 import { hasMetadata } from './types';
 import { assetUrl } from './assetUrls';
 import { perfMark, perfMeasure, setPerfEnabled } from './perf';
 
 export type PageMode = 'endless' | 20 | 40 | 60 | 100 | 200;
 export type PreviewMode = 'selection' | 'plain' | null;
+export type AssetFilter = 'none' | 'favorite' | 'trash';
 
 export interface SettingsState {
     relativePath: string;
@@ -32,6 +33,7 @@ export interface SettingsState {
     videoThumbFit: 'width' | 'height';
     deduplicateSymlinks: boolean;
     debugPerf: boolean;
+    skipTrashWhenAdvancing: boolean;
     thumbSize: number;
     sidebarWidth: number;
     pageMode: PageMode;
@@ -55,6 +57,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
     videoThumbFit: 'height',
     deduplicateSymlinks: true,
     debugPerf: false,
+    skipTrashWhenAdvancing: true,
     thumbSize: 350,
     sidebarWidth: 320,
     pageMode: 'endless',
@@ -101,6 +104,17 @@ export interface GalleryContextType {
     previewMode: PreviewMode;
     setPreviewMode: (mode: PreviewMode) => void;
     getPreviewMode: () => PreviewMode;
+    previewAssetUrl: string | undefined;
+    setPreviewAssetUrl: Dispatch<SetStateAction<string | undefined>>;
+    hoveredAssetUrl: string | undefined;
+    setHoveredAssetUrl: Dispatch<SetStateAction<string | undefined>>;
+    assetTags: Record<string, AssetTagState>;
+    isAssetTrashed: (url: string) => boolean;
+    isAssetFavorite: (url: string) => boolean;
+    toggleAssetTag: (url: string, tag: 'trash' | 'favorite') => boolean;
+    toggleAssetTagForUrls: (urls: string[], tag: 'trash' | 'favorite') => boolean;
+    assetFilter: AssetFilter;
+    setAssetFilter: Dispatch<SetStateAction<AssetFilter>>;
     size: ReturnType<typeof useSize>;
     imagesBoxSize: ReturnType<typeof useSize>;
     data: FilesTree | undefined;
@@ -179,6 +193,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [previewingVideo, setPreviewingVideo] = useState<string | undefined>(undefined);
     const [previewMode, setPreviewModeState] = useState<PreviewMode>(null);
     const previewModeRef = useRef<PreviewMode>(null);
+    const [previewAssetUrl, setPreviewAssetUrl] = useState<string | undefined>(undefined);
+    const [hoveredAssetUrl, setHoveredAssetUrl] = useState<string | undefined>(undefined);
+    const [assetFilter, setAssetFilter] = useState<AssetFilter>('none');
     const setPreviewMode = useCallback((mode: PreviewMode) => {
         // Keep a synchronous copy: Ant preview can fire onChange before React
         // commits the state update from a card action.
@@ -197,6 +214,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [settingsState, setSettings] = useLocalStorageState<SettingsState>(STORAGE_KEY, {
         defaultValue: DEFAULT_SETTINGS,
         listenStorageChange: true,
+    });
+    const [assetTags, setAssetTags] = useLocalStorageState<Record<string, AssetTagState>>('comfy-ui-gallery-asset-tags', {
+        defaultValue: {},
     });
 
     const mergedSettings = useMemo<SettingsState>(() => mergeSettings(DEFAULT_SETTINGS, settingsState), [settingsState]);
@@ -438,11 +458,63 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         setSelectionAnchor(undefined);
     }, [currentFolder]);
 
+    const isAssetTrashed = useCallback((url: string) => !!assetTags?.[url]?.trash, [assetTags]);
+    const isAssetFavorite = useCallback((url: string) => !!assetTags?.[url]?.favorite, [assetTags]);
+
+    const toggleAssetTag = useCallback((url: string, tag: 'trash' | 'favorite') => {
+        const active = !!assetTags?.[url]?.[tag];
+        setAssetTags((previous) => {
+            const next = { ...(previous ?? {}) };
+            const entry = { ...(next[url] ?? {}) };
+            if (active) {
+                delete entry[tag];
+            } else {
+                entry[tag] = true;
+            }
+            if (entry.trash || entry.favorite) {
+                next[url] = entry;
+            } else {
+                delete next[url];
+            }
+            return next;
+        });
+        return !active;
+    }, [assetTags, setAssetTags]);
+
+    const toggleAssetTagForUrls = useCallback((urls: string[], tag: 'trash' | 'favorite') => {
+        const unique = Array.from(new Set(urls));
+        if (unique.length === 0) return false;
+        const shouldSet = !unique.every((url) => !!assetTags?.[url]?.[tag]);
+        setAssetTags((previous) => {
+            const next = { ...(previous ?? {}) };
+            for (const url of unique) {
+                const entry = { ...(next[url] ?? {}) };
+                if (shouldSet) {
+                    entry[tag] = true;
+                } else {
+                    delete entry[tag];
+                }
+                if (entry.trash || entry.favorite) {
+                    next[url] = entry;
+                } else {
+                    delete next[url];
+                }
+            }
+            return next;
+        });
+        return shouldSet;
+    }, [assetTags, setAssetTags]);
+
     const imagesDetailsList = useMemo(() => {
         let list: FileDetails[] = Object.values(data?.folders?.[currentFolder] ?? {});
         if (searchFileName && searchFileName.trim() !== "") {
             const searchTerm = searchFileName.toLowerCase();
             list = list.filter(imageInfo => imageInfo.name.toLowerCase().includes(searchTerm));
+        }
+        if (assetFilter === 'favorite') {
+            list = list.filter(imageInfo => !!assetTags?.[imageInfo.url]?.favorite);
+        } else if (assetFilter === 'trash') {
+            list = list.filter(imageInfo => !!assetTags?.[imageInfo.url]?.trash);
         }
         switch (sortMethod) {
             case 'Name ↑':
@@ -455,7 +527,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
             default:
                 return list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         }
-    }, [currentFolder, data, sortMethod, searchFileName]);
+    }, [currentFolder, data, sortMethod, searchFileName, assetFilter, assetTags]);
 
     const pageMode: PageMode = mergedSettings.pageMode ?? 'endless';
     const pageCount = pageMode === 'endless'
@@ -464,7 +536,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         setPageIndex(0);
-    }, [currentFolder, searchFileName, sortMethod, pageMode]);
+    }, [currentFolder, searchFileName, sortMethod, pageMode, assetFilter]);
 
     useEffect(() => {
         setPageIndex((index) => Math.min(index, pageCount - 1));
@@ -626,6 +698,26 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
             return;
         }
         if (!open || typing) return;
+        if (!event.repeat && (event.code === 'Space' || event.code === 'KeyF')) {
+            const previewOpen = !!document.querySelector('.ant-image-preview-root');
+            const targetUrls = previewOpen
+                ? (previewAssetUrl ? [previewAssetUrl] : [])
+                : (selectedImages.length > 0
+                    ? selectedImages
+                    : (hoveredAssetUrl ? [hoveredAssetUrl] : []));
+            if (targetUrls.length === 0) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            const tag = event.code === 'Space' ? 'trash' : 'favorite';
+            const result = targetUrls.length === 1
+                ? toggleAssetTag(targetUrls[0], tag)
+                : toggleAssetTagForUrls(targetUrls, tag);
+            if (tag === 'trash' && previewOpen && result && targetUrls.length === 1) {
+                window.dispatchEvent(new CustomEvent('gallery:preview-advance'));
+            }
+            return;
+        }
         if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
             event.preventDefault();
             selectAllVisible();
@@ -671,6 +763,12 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         open, setOpen,
         previewingVideo, setPreviewingVideo,
         previewMode, setPreviewMode, getPreviewMode,
+        previewAssetUrl, setPreviewAssetUrl,
+        hoveredAssetUrl, setHoveredAssetUrl,
+        assetTags: assetTags ?? {},
+        isAssetTrashed, isAssetFavorite,
+        toggleAssetTag, toggleAssetTagForUrls,
+        assetFilter, setAssetFilter,
         size, imagesBoxSize,
         data, dataRevision, error, loading, runAsync, mutate,
         imagesDetailsList,
@@ -715,6 +813,14 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         previewMode,
         setPreviewMode,
         getPreviewMode,
+        previewAssetUrl,
+        hoveredAssetUrl,
+        assetTags,
+        isAssetTrashed,
+        isAssetFavorite,
+        toggleAssetTag,
+        toggleAssetTagForUrls,
+        assetFilter,
         size,
         imagesBoxSize,
         data,

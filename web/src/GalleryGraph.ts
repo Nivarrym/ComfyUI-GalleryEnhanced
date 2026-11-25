@@ -265,3 +265,80 @@ export function galleryImagesFromSelection(images: FileDetails[], selectedUrls: 
             type: image.type as GalleryGraphAssetType,
         }));
 }
+
+function selectedGraphNodes(canvas: any): any[] {
+    if (canvas?.selectedItems instanceof Set) {
+        return Array.from(canvas.selectedItems);
+    }
+    if (Array.isArray(canvas?.selectedItems)) {
+        return canvas.selectedItems;
+    }
+    if (canvas?.selected_nodes && typeof canvas.selected_nodes === 'object') {
+        return Object.values(canvas.selected_nodes);
+    }
+    return [];
+}
+
+/**
+ * Replace the asset on the single selected gallery loader node. This never
+ * creates a node and never changes the node title.
+ */
+export function replaceSelectedGalleryNode(
+    image: GalleryGraphImage,
+    relativePath: string,
+): GalleryGraphResult {
+    const api = getGraphApi();
+    if (!api) {
+        return {
+            ok: false,
+            added: 0,
+            error: 'ComfyUI graph API is unavailable. Reload ComfyUI and try again.',
+        };
+    }
+
+    const selected = selectedGraphNodes(api.canvas);
+    if (selected.length !== 1) {
+        return {
+            ok: false,
+            added: 0,
+            error: 'Select exactly one gallery loader node on the graph',
+        };
+    }
+
+    const node = selected[0];
+    const config = NODE_CONFIG[image.type];
+    const widget = config ? node?.widgets?.find((item: any) => item.name === config.widget) : undefined;
+    if (!config || !widget || node?.type !== config.type) {
+        return {
+            ok: false,
+            added: 0,
+            error: `Select a ${config?.type || 'gallery loader'} node for ${image.type} assets`,
+        };
+    }
+
+    try {
+        const imagePath = toOutputRelativePath(image.url, relativePath);
+        const values = widget.options?.values;
+        if (Array.isArray(values) && !values.includes(imagePath)) {
+            try {
+                values.push(imagePath);
+            } catch {
+                // A read-only combo still accepts the current value.
+            }
+        }
+        widget.value = imagePath;
+        try {
+            widget.callback?.(imagePath, api.canvas, node, {}, {});
+        } catch {
+            // The preview installer below is authoritative.
+        }
+        (window as any).__galleryAttachImagePreview?.(node);
+        api.graph.setDirtyCanvas?.(true, true);
+        api.graph.change?.();
+        api.canvas?.setDirty?.(true, true);
+        api.canvas?.selectNode?.(node, false);
+        return { ok: true, added: 0, nodes: [node] };
+    } catch (error) {
+        return { ok: false, added: 0, error: String(error) };
+    }
+}
