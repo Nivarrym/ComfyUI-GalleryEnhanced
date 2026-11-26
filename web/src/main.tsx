@@ -134,19 +134,10 @@ function attachGalleryImagePreview(node: any) {
     const imageWidget = node.widgets?.find((widget: any) => widget.name === 'image');
     if (!imageWidget) return;
 
-    const container = document.createElement('div');
-    container.className = 'gallery-node-preview';
-    const image = document.createElement('img');
-    image.className = 'gallery-node-preview-image';
-    image.alt = '';
-    container.appendChild(image);
-
-    node.addDOMWidget('gallery_image_preview', 'gallery_image_preview', container, {
-        serialize: false,
-        hideOnZoom: false,
-        getMinHeight: () => 170,
-        getHeight: () => 170,
-    });
+    // Use LiteGraph's native image preview fields. The old custom DOM preview
+    // produced a second image in addition to the standard node preview.
+    const image = new Image();
+    image.decoding = 'async';
 
     let lastValue = '';
     const update = (force = false) => {
@@ -154,25 +145,23 @@ function attachGalleryImagePreview(node: any) {
         if (!force && value === lastValue) return;
         lastValue = value;
         if (!value) {
-            image.removeAttribute('src');
             node.imgs = [];
             node.images = [];
-            container.classList.add('gallery-node-preview-empty');
+            node.previewMediaType = undefined;
+            node.setDirtyCanvas?.(true, true);
             return;
         }
-        container.classList.remove('gallery-node-preview-empty');
         const src = galleryViewUrl(value);
+        node.images = [galleryImageDescriptor(value)];
+        node.previewMediaType = 'image';
         image.onload = () => {
-            // Match the standard LoadImage fields used by the built-in mask
-            // editor and image menu. The DOM preview alone is invisible to it.
+            // These are the standard LoadImage fields consumed by the built-in
+            // mask editor, image menu and LiteGraph preview.
             node.imgs = [image];
-            node.images = [galleryImageDescriptor(value)];
             node.imageIndex = 0;
-            node.previewMediaType = 'image';
             node.setDirtyCanvas?.(true, true);
         };
         image.src = src;
-        node.images = [galleryImageDescriptor(value)];
     };
 
     const originalCallback = imageWidget.callback;
@@ -204,7 +193,7 @@ function attachGalleryImagePreview(node: any) {
             Math.max(node.size?.[1] ?? 120, 300),
         ]);
     } catch {
-        // The preview still works if a frontend build doesn't expose setSize.
+        // The native preview still works if setSize is unavailable.
     }
 }
 

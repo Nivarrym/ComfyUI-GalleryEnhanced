@@ -101,8 +101,8 @@ is the unmodified 2.7.1 import.
   title; the filename is only the widget value, so there is one visible loader
   node type with a fixed name.
 
-- `LoadImageFromGallery` installs a non-serialized DOM widget showing the
-  selected image inside the node.
+- `LoadImageFromGallery` installs only LiteGraph's native image preview (no DOM
+  preview widget), backing it with ComfyUI's standard `imgs`/`images` fields.
 - The node also fills ComfyUI's standard image fields (`imgs`, `images`,
   `previewMediaType`) and uses `[output]`/`[input]` path annotations, so the
   native mask editor, node menu and selection toolbar work on it directly.

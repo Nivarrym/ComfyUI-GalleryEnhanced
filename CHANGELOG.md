@@ -18,6 +18,8 @@ starting from upstream **2.7.1**. Maintained by **Nivarrym**.
   `node.imgs`, `node.images` and `previewMediaType`, so ComfyUI's native mask
   editor, node context menu and selection toolbar work immediately after Add to
   Graph. Mask editor saves are accepted from `[input]` paths as well.
+- Removed the duplicate custom DOM preview from `LoadImageFromGallery`; the node
+  now uses only LiteGraph's native image preview.
 
 ## 2.20.1
 
