@@ -106,6 +106,8 @@ is the unmodified 2.7.1 import.
 - The node also fills ComfyUI's standard image fields (`imgs`, `images`,
   `previewMediaType`) and uses `[output]`/`[input]` path annotations, so the
   native mask editor, node menu and selection toolbar work on it directly.
+- The node has an **Upload File** button that opens the gallery picker instead
+  of the browser file dialog.
 - The preview is built from the output-relative combo value via `/view` and
   refreshes on dropdown changes, Add to Graph, configure/undo and draw-time
   value changes.

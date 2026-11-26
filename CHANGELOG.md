@@ -20,6 +20,8 @@ starting from upstream **2.7.1**. Maintained by **Nivarrym**.
   Graph. Mask editor saves are accepted from `[input]` paths as well.
 - Removed the duplicate custom DOM preview from `LoadImageFromGallery`; the node
   now uses only LiteGraph's native image preview.
+- Added a native-looking **Upload File** widget button to `LoadImageFromGallery`
+  that opens the gallery instead of a file dialog.
 
 ## 2.20.1
 

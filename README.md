@@ -23,7 +23,8 @@ metadata, graph loaders and batch management.
 - **Mask editor** — open ComfyUI's built-in mask editor directly from a card,
   the selection toolbar, or the `Load Image From Gallery` node.
 - **Graph integration** — Add to Graph, Replace selected node, in-node image
-  preview, and `Load Image / Video / Audio From Gallery` nodes.
+  preview, an **Upload File** button that opens the gallery, and
+  `Load Image / Video / Audio From Gallery` nodes.
 - **Faster browsing** — lazy scans, cached WebP thumbnails, on-demand metadata,
   endless scroll, pagination, resizable sidebar, card-size slider and dark theme.
 

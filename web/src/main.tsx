@@ -251,6 +251,18 @@ ComfyAppApi.registerExtension({
         try {
             if (node.comfyClass === "LoadImageFromGallery" || node.type === "LoadImageFromGallery") {
                 attachGalleryImagePreview(node);
+                // Match Load Image's "Upload File" button visually, but open
+                // the gallery picker instead of the browser file dialog.
+                const uploadWidget = node.addWidget("button", "Upload File", null, () => {
+                    try {
+                        document.getElementById(OPEN_BUTTON_ID)?.click();
+                    } catch {
+                        // The gallery button is mounted with the extension.
+                    }
+                });
+                if (uploadWidget) {
+                    uploadWidget.tooltip = "Choose an image from the gallery";
+                }
             }
             if (node.comfyClass === "GalleryNode") {
                 node.addWidget("button", "Open Gallery", null, () => {
