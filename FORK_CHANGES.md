@@ -103,6 +103,9 @@ is the unmodified 2.7.1 import.
 
 - `LoadImageFromGallery` installs a non-serialized DOM widget showing the
   selected image inside the node.
+- The node also fills ComfyUI's standard image fields (`imgs`, `images`,
+  `previewMediaType`) and uses `[output]`/`[input]` path annotations, so the
+  native mask editor, node menu and selection toolbar work on it directly.
 - The preview is built from the output-relative combo value via `/view` and
   refreshes on dropdown changes, Add to Graph, configure/undo and draw-time
   value changes.

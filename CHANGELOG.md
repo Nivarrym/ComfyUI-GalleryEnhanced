@@ -14,6 +14,10 @@ starting from upstream **2.7.1**. Maintained by **Nivarrym**.
   folder context menu for the current folder.
 - `Unload Models` moved out of the gallery package to the separate
   `Nivarrym_nodes` package.
+- `LoadImageFromGallery` now exposes annotated `[output]` paths plus
+  `node.imgs`, `node.images` and `previewMediaType`, so ComfyUI's native mask
+  editor, node context menu and selection toolbar work immediately after Add to
+  Graph. Mask editor saves are accepted from `[input]` paths as well.
 
 ## 2.20.1
 

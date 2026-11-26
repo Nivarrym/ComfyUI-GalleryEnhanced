@@ -20,8 +20,8 @@ metadata, graph loaders and batch management.
   and its right-click menu.
 - **Comparison mode** — two images/videos with wipe divider, horizontal/vertical
   direction, Overlay/Fade modes, fit modes, 3×3 anchor and Swap A/B.
-- **Mask editor** — open ComfyUI's built-in mask editor directly from a card or
-  the selection toolbar.
+- **Mask editor** — open ComfyUI's built-in mask editor directly from a card,
+  the selection toolbar, or the `Load Image From Gallery` node.
 - **Graph integration** — Add to Graph, Replace selected node, in-node image
   preview, and `Load Image / Video / Audio From Gallery` nodes.
 - **Faster browsing** — lazy scans, cached WebP thumbnails, on-demand metadata,

@@ -92,17 +92,39 @@ function waitForElement(selectorOrSelectors: string | string[], delay = 500, tim
 }
 
 function galleryViewUrl(value: string): string {
-    const normalized = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const raw = String(value || '');
+    const normalized = raw
+        .replace(/\\/g, '/')
+        .replace(/\s*\[(?:input|output|temp)\]\s*$/i, '')
+        .replace(/^\/+/, '');
+    const annotation = /\[(input|output|temp)\]\s*$/i.exec(raw);
+    const type = annotation ? annotation[1].toLowerCase() : 'output';
     const slash = normalized.lastIndexOf('/');
     const subfolder = slash >= 0 ? normalized.slice(0, slash) : '';
     const filename = slash >= 0 ? normalized.slice(slash + 1) : normalized;
     const params = new URLSearchParams({
         filename,
-        type: 'output',
+        type,
         subfolder,
         t: String(Date.now()),
     });
     return `/view?${params.toString()}`;
+}
+
+function galleryImageDescriptor(value: string) {
+    const raw = String(value || '');
+    const normalized = raw
+        .replace(/\\/g, '/')
+        .replace(/\s*\[(?:input|output|temp)\]\s*$/i, '')
+        .replace(/^\/+/, '');
+    const annotation = /\[(input|output|temp)\]\s*$/i.exec(raw);
+    const slash = normalized.lastIndexOf('/');
+    return {
+        filename: slash >= 0 ? normalized.slice(slash + 1) : normalized,
+        subfolder: slash >= 0 ? normalized.slice(0, slash) : '',
+        type: annotation ? annotation[1].toLowerCase() : 'output',
+        url: galleryViewUrl(value),
+    };
 }
 
 function attachGalleryImagePreview(node: any) {
@@ -133,11 +155,24 @@ function attachGalleryImagePreview(node: any) {
         lastValue = value;
         if (!value) {
             image.removeAttribute('src');
+            node.imgs = [];
+            node.images = [];
             container.classList.add('gallery-node-preview-empty');
             return;
         }
         container.classList.remove('gallery-node-preview-empty');
-        image.src = galleryViewUrl(value);
+        const src = galleryViewUrl(value);
+        image.onload = () => {
+            // Match the standard LoadImage fields used by the built-in mask
+            // editor and image menu. The DOM preview alone is invisible to it.
+            node.imgs = [image];
+            node.images = [galleryImageDescriptor(value)];
+            node.imageIndex = 0;
+            node.previewMediaType = 'image';
+            node.setDirtyCanvas?.(true, true);
+        };
+        image.src = src;
+        node.images = [galleryImageDescriptor(value)];
     };
 
     const originalCallback = imageWidget.callback;

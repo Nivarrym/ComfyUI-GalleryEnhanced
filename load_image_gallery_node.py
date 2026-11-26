@@ -8,10 +8,13 @@ sessions.
 from __future__ import annotations
 
 import os
+import re
 
 IMAGE_EXTENSIONS = frozenset({
     ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff",
 })
+
+_ANNOTATION_RE = re.compile(r"\s*\[(input|output|temp)\]\s*$", re.IGNORECASE)
 
 
 def _output_root() -> str:
@@ -20,8 +23,23 @@ def _output_root() -> str:
     return os.path.realpath(folder_paths.get_output_directory())
 
 
+def _root_for_value(image: str) -> str:
+    import folder_paths
+
+    match = _ANNOTATION_RE.search(str(image))
+    kind = match.group(1).lower() if match else "output"
+    if kind == "input":
+        return os.path.realpath(folder_paths.get_input_directory())
+    if kind == "temp":
+        return os.path.realpath(folder_paths.get_temp_directory())
+    return _output_root()
+
+
 def _normalize_relative(path: str) -> str:
-    return str(path).replace("\\", "/").strip().lstrip("/")
+    # ComfyUI's frontend uses the "[output]" suffix to tell its image loader
+    # and mask editor which folder a combo value belongs to.
+    value = _ANNOTATION_RE.sub("", str(path))
+    return value.replace("\\", "/").strip().lstrip("/")
 
 
 def _iter_gallery_images() -> list[str]:
@@ -35,13 +53,15 @@ def _iter_gallery_images() -> list[str]:
                 continue
             full_path = os.path.join(base, filename)
             relative = os.path.relpath(full_path, root).replace(os.sep, "/")
-            found.append(relative)
+            # The annotation is understood by ComfyUI's image/mask editor and
+            # stripped again by _normalize_relative before loading.
+            found.append(f"{relative} [output]")
     found.sort(key=str.casefold)
     return found
 
 
 def _resolve_image_path(image: str) -> str:
-    root = _output_root()
+    root = _root_for_value(image)
     relative = _normalize_relative(image)
     if not relative:
         raise ValueError("No gallery image selected")
@@ -51,7 +71,7 @@ def _resolve_image_path(image: str) -> str:
     except ValueError:
         inside_root = False
     if not inside_root:
-        raise ValueError("Image path is outside the ComfyUI output directory")
+        raise ValueError("Image path is outside the ComfyUI image directory")
     if not os.path.isfile(full_path):
         raise ValueError(f"Image not found: {relative}")
     if os.path.splitext(full_path)[1].lower() not in IMAGE_EXTENSIONS:

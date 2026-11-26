@@ -190,19 +190,20 @@ export function addGalleryImagesToGraph(
             api.graph.add(node);
 
             const imagePath = toOutputRelativePath(image.url, relativePath);
+            const widgetValue = image.type === 'image' ? `${imagePath} [output]` : imagePath;
             const widget = node.widgets?.find((item: any) => item.name === config.widget);
             if (widget) {
                 const values = widget.options?.values;
-                if (Array.isArray(values) && !values.includes(imagePath)) {
+                if (Array.isArray(values) && !values.includes(widgetValue)) {
                     try {
-                        values.push(imagePath);
+                        values.push(widgetValue);
                     } catch {
                         // A read-only combo still accepts the current value.
                     }
                 }
-                widget.value = imagePath;
+                widget.value = widgetValue;
                 try {
-                    widget.callback?.(imagePath, api.canvas, node, {}, {});
+                    widget.callback?.(widgetValue, api.canvas, node, {}, {});
                 } catch {
                     // Preview installation below is the authoritative update.
                 }
@@ -318,17 +319,18 @@ export function replaceSelectedGalleryNode(
 
     try {
         const imagePath = toOutputRelativePath(image.url, relativePath);
+        const widgetValue = image.type === 'image' ? `${imagePath} [output]` : imagePath;
         const values = widget.options?.values;
-        if (Array.isArray(values) && !values.includes(imagePath)) {
+        if (Array.isArray(values) && !values.includes(widgetValue)) {
             try {
-                values.push(imagePath);
+                values.push(widgetValue);
             } catch {
                 // A read-only combo still accepts the current value.
             }
         }
-        widget.value = imagePath;
+        widget.value = widgetValue;
         try {
-            widget.callback?.(imagePath, api.canvas, node, {}, {});
+            widget.callback?.(widgetValue, api.canvas, node, {}, {});
         } catch {
             // The preview installer below is authoritative.
         }
