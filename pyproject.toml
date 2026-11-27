@@ -1,6 +1,6 @@
 [project]
 name = "gallery-enhanced"
-version = "2.20.2"
+version = "2.20.3"
 description = "Fast ComfyUI output gallery with batch selection, trash/favorites, quick cleanup, folder editing, A/B comparison, mask editing, and gallery loader nodes."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -18,9 +18,9 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Nivarrym/GalleryEnhanced"
-Documentation = "https://github.com/Nivarrym/GalleryEnhanced/blob/main/README.md"
-"Bug Tracker" = "https://github.com/Nivarrym/GalleryEnhanced/issues"
+Repository = "https://github.com/Nivarrym/ComfyUI-GalleryEnhanced"
+Documentation = "https://github.com/Nivarrym/ComfyUI-GalleryEnhanced/blob/main/README.md"
+"Bug Tracker" = "https://github.com/Nivarrym/ComfyUI-GalleryEnhanced/issues"
 Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
 
 [tool.comfy]
