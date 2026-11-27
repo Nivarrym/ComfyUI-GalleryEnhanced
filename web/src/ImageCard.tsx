@@ -321,54 +321,33 @@ const ImageCard = memo(function ImageCard({
     };
 
     const handleOpenSourceWorkflow = async () => {
-        let popup: Window | null = null;
         setOpeningWorkflow(true);
         try {
-            popup = window.open('about:blank', '_blank');
-            if (!popup) {
-                message.error('Allow pop-ups for this site to open the workflow tab');
-                return;
-            }
-            try {
-                popup.document.title = 'Loading workflow…';
-                popup.document.body.textContent = 'Loading workflow…';
-            } catch {
-                // about:blank normally allows this; navigation follows anyway.
-            }
-
             const metadata = hasMetadata(image)
                 ? image.metadata
                 : await ComfyAppApi.fetchMetadata(image.url);
             const rawWorkflow = (metadata as any)?.workflow;
             if (!rawWorkflow) {
-                popup.close();
                 message.error('This image has no embedded workflow metadata');
                 return;
             }
             const workflow = typeof rawWorkflow === 'string'
                 ? JSON.parse(rawWorkflow)
                 : rawWorkflow;
-            popup.location.replace(`${window.location.origin}${window.location.pathname}`);
 
-            const started = Date.now();
-            while (Date.now() - started < 15000) {
-                if (popup.closed) {
-                    throw new Error('Workflow tab was closed');
-                }
-                const target = popup as any;
-                const app = target.comfyAPI?.app?.app;
-                if (app && typeof app.loadGraphData === 'function') {
-                    // Let the new tab finish loading its default workflow first;
-                    // otherwise that load can overwrite the requested graph.
-                    await new Promise((resolve) => window.setTimeout(resolve, 1800));
-                    await app.loadGraphData(workflow, true, true);
-                    return;
-                }
-                await new Promise((resolve) => window.setTimeout(resolve, 200));
+            const app = (window as any).comfyAPI?.app?.app ?? (window as any).app;
+            const manager = app?.extensionManager?.workflow;
+            if (!manager || typeof manager.createTemporary !== 'function'
+                || typeof manager.openWorkflow !== 'function') {
+                message.error('The ComfyUI workflow tab API is unavailable');
+                return;
             }
-            throw new Error('ComfyUI did not become ready in the new tab');
+
+            const baseName = image.name.replace(/\.[^.]+$/, '') || 'gallery';
+            const tab = manager.createTemporary(`Source - ${baseName}.json`, workflow);
+            await manager.openWorkflow(tab);
+            setOpen(false);
         } catch (error) {
-            try { popup?.close(); } catch { }
             message.error(`Could not open workflow: ${String(error)}`);
         } finally {
             setOpeningWorkflow(false);
@@ -596,7 +575,7 @@ const ImageCard = memo(function ImageCard({
                     </Tooltip>
                 )}
                 {image.type === 'image' && (
-                    <Tooltip title="Open the source workflow in a new tab">
+                    <Tooltip title="Open the source workflow in a new workflow tab">
                         <Button
                             className="gallery-card-action"
                             shape="circle"

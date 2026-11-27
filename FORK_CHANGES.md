@@ -72,7 +72,8 @@ is the unmodified 2.7.1 import.
 ### Workflow tab and info closing
 
 - Each image card has an **Open source workflow** action. It reads the embedded
-  `workflow` metadata and loads that graph in a new ComfyUI tab.
+  `workflow` metadata and opens it in a new workflow tab inside the current
+  ComfyUI session.
 - Clicking the empty backdrop around the Info/Metadata view closes the preview,
   including when the default Ant toolbar is used.
 

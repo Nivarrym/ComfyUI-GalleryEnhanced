@@ -23,7 +23,7 @@ starting from upstream **2.7.1**. Maintained by **Nivarrym**.
 - Added a native-looking **Upload File** widget button to `LoadImageFromGallery`
   that opens the gallery instead of a file dialog.
 - Added an **Open source workflow** card action that reads the embedded workflow
-  metadata and loads it in a new ComfyUI tab.
+  metadata and opens it in a new workflow tab inside the current ComfyUI session.
 - Clicking the empty area around the Info/Metadata view now closes the preview.
 
 ## 2.20.1
