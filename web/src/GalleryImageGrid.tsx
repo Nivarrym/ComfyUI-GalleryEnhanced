@@ -73,6 +73,21 @@ const GalleryImageGrid = () => {
         e.nativeEvent.stopImmediatePropagation();
     }, []);
 
+    const closePreview = useCallback(() => {
+        const root = document.querySelector('.ant-image-preview-root');
+        const closeButton = root?.querySelector<HTMLElement>('.ant-image-preview-close');
+        closeButton?.click();
+        // rc-dialog can remain stuck in its leave transition with a custom
+        // imageRender. Remove the stale portal as a fallback.
+        window.setTimeout(() => {
+            document.querySelector('.ant-image-preview-root')?.remove();
+            setPreviewOpen(false);
+            setImageInfoName(undefined);
+            setPreviewingVideo(undefined);
+            setPreviewMode(null);
+        }, 0);
+    }, [setImageInfoName, setPreviewMode, setPreviewingVideo]);
+
     const customImageRender = useCallback((originalNode: React.ReactElement, info: { current: number }) => {
         const image = previewableImages[info.current];
         if (!image) return originalNode;
@@ -83,6 +98,7 @@ const GalleryImageGrid = () => {
                     onShowRaw={() => setShowRawMetadata(true)}
                     showRawMetadata={showRawMetadata}
                     setShowRawMetadata={setShowRawMetadata}
+                    onRequestClose={closePreview}
                 />
             );
         }
@@ -150,7 +166,7 @@ const GalleryImageGrid = () => {
             );
         }
         return originalNode;
-    }, [imageInfoName, previewableImages, showRawMetadata, setShowRawMetadata, settings.autoPlayVideos, stopPropagation]);
+    }, [imageInfoName, previewableImages, showRawMetadata, setShowRawMetadata, settings.autoPlayVideos, stopPropagation, closePreview]);
 
     const infoOnChange = useCallback((current: number) => {
         setImageInfoName(previewableImages[current]?.name);
@@ -237,11 +253,12 @@ const GalleryImageGrid = () => {
                 preview={(imageInfoName != undefined) ? {
                     current: previewCurrent,
                     imageRender: customImageRender,
-                    toolbarRender: () => null,
                     onChange: infoOnChange,
                     afterOpenChange: infoAfterOpenChange,
                     maskClosable: true,
-                    destroyOnClose: true
+                    destroyOnClose: true,
+                    transitionName: '',
+                    maskTransitionName: ''
                 } : {
                     current: previewCurrent,
                     onChange: imageOnChange,
@@ -249,6 +266,8 @@ const GalleryImageGrid = () => {
                     toolbarRender: () => previewingVideo != undefined ? null : undefined,
                     maskClosable: true,
                     destroyOnClose: true,
+                    transitionName: '',
+                    maskTransitionName: '',
                     afterOpenChange: imageAfterOpenChange,
                 }}
             >

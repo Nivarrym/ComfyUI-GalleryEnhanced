@@ -22,12 +22,14 @@ export function MetadataView({
     image,
     onShowRaw,
     showRawMetadata,
-    setShowRawMetadata
+    setShowRawMetadata,
+    onRequestClose,
 }: {
     image: FileDetails,
     onShowRaw: () => void,
     showRawMetadata: boolean,
-    setShowRawMetadata: (show: boolean) => void
+    setShowRawMetadata: (show: boolean) => void,
+    onRequestClose?: () => void,
 }) {
     const [metadata, setMetadata] = useState<Metadata>(image.metadata);
     const [metaLoading, setMetaLoading] = useState(!hasMetadata(image));
@@ -204,6 +206,13 @@ export function MetadataView({
     return (
         <div
             key={image.name}
+            onClick={(event) => {
+                // The metadata view fills the preview surface. A click on the
+                // empty backdrop (not on the image/info cards) closes it.
+                if (event.target === event.currentTarget) {
+                    onRequestClose?.();
+                }
+            }}
             style={{
                 width: "100%",
                 height: "-webkit-fill-available",

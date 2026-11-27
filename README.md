@@ -25,6 +25,10 @@ metadata, graph loaders and batch management.
 - **Graph integration** — Add to Graph, Replace selected node, in-node image
   preview, an **Upload File** button that opens the gallery, and
   `Load Image / Video / Audio From Gallery` nodes.
+- **Source workflow** — a card action opens the workflow embedded in the
+  asset's metadata in a new ComfyUI tab.
+- **Info preview** — clicking outside the metadata view or around the image
+  closes it.
 - **Faster browsing** — lazy scans, cached WebP thumbnails, on-demand metadata,
   endless scroll, pagination, resizable sidebar, card-size slider and dark theme.
 

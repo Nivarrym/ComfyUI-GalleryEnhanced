@@ -1,5 +1,6 @@
 import { App, Button, Image, Popconfirm, Tooltip, Typography } from 'antd';
 import type { FileDetails } from './types';
+import { hasMetadata } from './types';
 import CheckCircleFilled from '@ant-design/icons/lib/icons/CheckCircleFilled';
 import DeleteOutlined from '@ant-design/icons/lib/icons/DeleteOutlined';
 import ExportOutlined from '@ant-design/icons/lib/icons/ExportOutlined';
@@ -14,6 +15,7 @@ import StarFilled from '@ant-design/icons/lib/icons/StarFilled';
 import StarOutlined from '@ant-design/icons/lib/icons/StarOutlined';
 import DeleteFilled from '@ant-design/icons/lib/icons/DeleteFilled';
 import SwapOutlined from '@ant-design/icons/lib/icons/SwapOutlined';
+import NodeIndexOutlined from '@ant-design/icons/lib/icons/NodeIndexOutlined';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useDrag } from 'ahooks';
 import type { Dispatch, SetStateAction } from 'react';
@@ -23,8 +25,7 @@ import { ComfyAppApi } from './ComfyAppApi';
 import { assetUrl } from './assetUrls';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import { GRID_THUMBNAIL_WIDTH, useThumbnail } from './thumbnails';
-import { addGalleryImagesToGraph } from './GalleryGraph';
-import { replaceSelectedGalleryNode } from './GalleryGraph';
+import { addGalleryImagesToGraph, replaceSelectedGalleryNode } from './GalleryGraph';
 import { openMaskEditor } from './GalleryMask';
 
 const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -124,6 +125,7 @@ const ImageCard = memo(function ImageCard({
     const [videoMuted, setVideoMuted] = useState(true);
     const [videoHovered, setVideoHovered] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [openingWorkflow, setOpeningWorkflow] = useState(false);
     const [nearViewport, setNearViewport] = useState(false);
     const thumbEnabled = image.type === 'image' && nearViewport;
     const { src: thumbnailSrc, state: thumbnailState } = useThumbnail(image, GRID_THUMBNAIL_WIDTH, thumbEnabled);
@@ -315,6 +317,61 @@ const ImageCard = memo(function ImageCard({
             message.success(`Replaced the selected node with ${image.name}`);
         } else {
             message.error(result.error || 'Could not replace the selected node');
+        }
+    };
+
+    const handleOpenSourceWorkflow = async () => {
+        let popup: Window | null = null;
+        setOpeningWorkflow(true);
+        try {
+            popup = window.open('about:blank', '_blank');
+            if (!popup) {
+                message.error('Allow pop-ups for this site to open the workflow tab');
+                return;
+            }
+            try {
+                popup.document.title = 'Loading workflow…';
+                popup.document.body.textContent = 'Loading workflow…';
+            } catch {
+                // about:blank normally allows this; navigation follows anyway.
+            }
+
+            const metadata = hasMetadata(image)
+                ? image.metadata
+                : await ComfyAppApi.fetchMetadata(image.url);
+            const rawWorkflow = (metadata as any)?.workflow;
+            if (!rawWorkflow) {
+                popup.close();
+                message.error('This image has no embedded workflow metadata');
+                return;
+            }
+            const workflow = typeof rawWorkflow === 'string'
+                ? JSON.parse(rawWorkflow)
+                : rawWorkflow;
+            popup.location.replace(`${window.location.origin}${window.location.pathname}`);
+
+            const started = Date.now();
+            while (Date.now() - started < 15000) {
+                if (popup.closed) {
+                    throw new Error('Workflow tab was closed');
+                }
+                const target = popup as any;
+                const app = target.comfyAPI?.app?.app;
+                if (app && typeof app.loadGraphData === 'function') {
+                    // Let the new tab finish loading its default workflow first;
+                    // otherwise that load can overwrite the requested graph.
+                    await new Promise((resolve) => window.setTimeout(resolve, 1800));
+                    await app.loadGraphData(workflow, true, true);
+                    return;
+                }
+                await new Promise((resolve) => window.setTimeout(resolve, 200));
+            }
+            throw new Error('ComfyUI did not become ready in the new tab');
+        } catch (error) {
+            try { popup?.close(); } catch { }
+            message.error(`Could not open workflow: ${String(error)}`);
+        } finally {
+            setOpeningWorkflow(false);
         }
     };
 
@@ -535,6 +592,19 @@ const ImageCard = memo(function ImageCard({
                             icon={<SwapOutlined />}
                             onClick={handleReplaceInGraph}
                             aria-label={`Replace the selected graph node with ${image.name}`}
+                        />
+                    </Tooltip>
+                )}
+                {image.type === 'image' && (
+                    <Tooltip title="Open the source workflow in a new tab">
+                        <Button
+                            className="gallery-card-action"
+                            shape="circle"
+                            size="small"
+                            loading={openingWorkflow}
+                            icon={<NodeIndexOutlined />}
+                            onClick={handleOpenSourceWorkflow}
+                            aria-label={`Open source workflow for ${image.name}`}
                         />
                     </Tooltip>
                 )}

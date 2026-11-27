@@ -69,6 +69,13 @@ is the unmodified 2.7.1 import.
   From/To date-time bounds; only trash-marked assets inside the range are
   deleted.
 
+### Workflow tab and info closing
+
+- Each image card has an **Open source workflow** action. It reads the embedded
+  `workflow` metadata and loads that graph in a new ComfyUI tab.
+- Clicking the empty backdrop around the Info/Metadata view closes the preview,
+  including when the default Ant toolbar is used.
+
 ### Asset comparison and mask editor
 
 - Compare is enabled only when exactly two visual assets (image or video) are
