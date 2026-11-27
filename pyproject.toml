@@ -26,4 +26,4 @@ Upstream = "https://github.com/PanicTitan/ComfyUI-Gallery"
 [tool.comfy]
 PublisherId = "nivarrym"
 DisplayName = "GalleryEnhanced"
-Icon = "https://raw.githubusercontent.com/Nivarrym/GalleryEnhanced/main/icon.png"
+Icon = "https://raw.githubusercontent.com/Nivarrym/ComfyUI-GalleryEnhanced/main/icon.png"
