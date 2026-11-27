@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Image, Spin } from 'antd';
 import { useGalleryContext } from './GalleryContext';
 import { MetadataView } from './MetadataView';
@@ -7,6 +8,8 @@ import { assetUrl } from './assetUrls';
 import { useBoxSelection } from './useBoxSelection';
 import SelectionToolbar from './SelectionToolbar';
 import GalleryGridBody from './GalleryGridBody';
+import { BASE_Z_INDEX } from './ComfyAppApi';
+import { galleryThemeClass } from './theme';
 
 const GalleryImageGrid = () => {
     const {
@@ -66,6 +69,15 @@ const GalleryImageGrid = () => {
         imagesDetailsList.filter(img => img.type === "image" || img.type === "media" || img.type === "audio" || img.type === "3d"),
         [imagesDetailsList]
     );
+    const infoImage = imageInfoName
+        ? data?.folders?.[currentFolder]?.[imageInfoName]
+        : undefined;
+
+    const closeInfo = useCallback(() => {
+        setImageInfoName(undefined);
+        setPreviewingVideo(undefined);
+        setPreviewMode(null);
+    }, [setImageInfoName, setPreviewingVideo, setPreviewMode]);
 
     const stopPropagation = useCallback((e: React.SyntheticEvent) => {
         e.stopPropagation();
@@ -73,35 +85,9 @@ const GalleryImageGrid = () => {
         e.nativeEvent.stopImmediatePropagation();
     }, []);
 
-    const closePreview = useCallback(() => {
-        const root = document.querySelector('.ant-image-preview-root');
-        const closeButton = root?.querySelector<HTMLElement>('.ant-image-preview-close');
-        closeButton?.click();
-        // rc-dialog can remain stuck in its leave transition with a custom
-        // imageRender. Remove the stale portal as a fallback.
-        window.setTimeout(() => {
-            document.querySelector('.ant-image-preview-root')?.remove();
-            setPreviewOpen(false);
-            setImageInfoName(undefined);
-            setPreviewingVideo(undefined);
-            setPreviewMode(null);
-        }, 0);
-    }, [setImageInfoName, setPreviewMode, setPreviewingVideo]);
-
     const customImageRender = useCallback((originalNode: React.ReactElement, info: { current: number }) => {
         const image = previewableImages[info.current];
         if (!image) return originalNode;
-        if (imageInfoName != undefined) {
-            return (
-                <MetadataView
-                    image={image}
-                    onShowRaw={() => setShowRawMetadata(true)}
-                    showRawMetadata={showRawMetadata}
-                    setShowRawMetadata={setShowRawMetadata}
-                    onRequestClose={closePreview}
-                />
-            );
-        }
         if (image.type === 'image') {
             return (
                 <div className="gallery-preview-image-shell">
@@ -166,19 +152,7 @@ const GalleryImageGrid = () => {
             );
         }
         return originalNode;
-    }, [imageInfoName, previewableImages, showRawMetadata, setShowRawMetadata, settings.autoPlayVideos, stopPropagation, closePreview]);
-
-    const infoOnChange = useCallback((current: number) => {
-        setImageInfoName(previewableImages[current]?.name);
-    }, [setImageInfoName, previewableImages]);
-
-    const infoAfterOpenChange = useCallback((open: boolean) => {
-        setPreviewOpen(open);
-        if (!open) {
-            setImageInfoName(undefined);
-            setPreviewMode(null);
-        }
-    }, [setImageInfoName, setPreviewMode]);
+    }, [previewableImages, settings.autoPlayVideos, stopPropagation]);
 
     const imageOnChange = useCallback((current: number) => {
         const image = previewableImages[current];
@@ -250,16 +224,7 @@ const GalleryImageGrid = () => {
             )}
             <Image.PreviewGroup
                 items={imagesUrlsLists}
-                preview={(imageInfoName != undefined) ? {
-                    current: previewCurrent,
-                    imageRender: customImageRender,
-                    onChange: infoOnChange,
-                    afterOpenChange: infoAfterOpenChange,
-                    maskClosable: true,
-                    destroyOnClose: true,
-                    transitionName: '',
-                    maskTransitionName: ''
-                } : {
+                preview={{
                     current: previewCurrent,
                     onChange: imageOnChange,
                     imageRender: customImageRender,
@@ -292,6 +257,33 @@ const GalleryImageGrid = () => {
             )}
 
             <SelectionToolbar overlay={previewOpen && previewMode === 'selection'} />
+
+            {infoImage && createPortal(
+                <div
+                    className={`gallery-info-overlay ${galleryThemeClass(settings.darkMode)}`}
+                    style={{ zIndex: BASE_Z_INDEX + 1 }}
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget) closeInfo();
+                    }}
+                >
+                    <button
+                        type="button"
+                        className="gallery-info-close"
+                        aria-label="Close info view"
+                        onClick={closeInfo}
+                    >
+                        ×
+                    </button>
+                    <MetadataView
+                        image={infoImage}
+                        onShowRaw={() => setShowRawMetadata(true)}
+                        showRawMetadata={showRawMetadata}
+                        setShowRawMetadata={setShowRawMetadata}
+                        onRequestClose={closeInfo}
+                    />
+                </div>,
+                document.body,
+            )}
         </div>
     );
 };

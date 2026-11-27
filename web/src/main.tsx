@@ -251,9 +251,8 @@ ComfyAppApi.registerExtension({
         try {
             if (node.comfyClass === "LoadImageFromGallery" || node.type === "LoadImageFromGallery") {
                 attachGalleryImagePreview(node);
-                // Match Load Image's "Upload File" button visually, but open
-                // the gallery picker instead of the browser file dialog.
-                const uploadWidget = node.addWidget("button", "Upload File", null, () => {
+                // Native-looking gallery picker button on the node.
+                const uploadWidget = node.addWidget("button", "Open gallery", null, () => {
                     try {
                         document.getElementById(OPEN_BUTTON_ID)?.click();
                     } catch {

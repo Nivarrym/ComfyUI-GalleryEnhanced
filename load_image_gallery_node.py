@@ -7,76 +7,26 @@ sessions.
 
 from __future__ import annotations
 
-import os
-import re
+from .gallery_node_utils import (
+    changed,
+    input_types,
+    iter_assets,
+    resolve_asset,
+    validate,
+)
 
 IMAGE_EXTENSIONS = frozenset({
     ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff",
 })
 
-_ANNOTATION_RE = re.compile(r"\s*\[(input|output|temp)\]\s*$", re.IGNORECASE)
-
-
-def _output_root() -> str:
-    import folder_paths
-
-    return os.path.realpath(folder_paths.get_output_directory())
-
-
-def _root_for_value(image: str) -> str:
-    import folder_paths
-
-    match = _ANNOTATION_RE.search(str(image))
-    kind = match.group(1).lower() if match else "output"
-    if kind == "input":
-        return os.path.realpath(folder_paths.get_input_directory())
-    if kind == "temp":
-        return os.path.realpath(folder_paths.get_temp_directory())
-    return _output_root()
-
-
-def _normalize_relative(path: str) -> str:
-    # ComfyUI's frontend uses the "[output]" suffix to tell its image loader
-    # and mask editor which folder a combo value belongs to.
-    value = _ANNOTATION_RE.sub("", str(path))
-    return value.replace("\\", "/").strip().lstrip("/")
-
 
 def _iter_gallery_images() -> list[str]:
-    root = _output_root()
-    found: list[str] = []
-    for base, dirs, files in os.walk(root):
-        # Do not descend into hidden/transient folders.
-        dirs[:] = [name for name in dirs if not name.startswith(".")]
-        for filename in files:
-            if os.path.splitext(filename)[1].lower() not in IMAGE_EXTENSIONS:
-                continue
-            full_path = os.path.join(base, filename)
-            relative = os.path.relpath(full_path, root).replace(os.sep, "/")
-            # The annotation is understood by ComfyUI's image/mask editor and
-            # stripped again by _normalize_relative before loading.
-            found.append(f"{relative} [output]")
-    found.sort(key=str.casefold)
-    return found
+    return iter_assets(IMAGE_EXTENSIONS, annotate_output=True)
 
 
 def _resolve_image_path(image: str) -> str:
-    root = _root_for_value(image)
-    relative = _normalize_relative(image)
-    if not relative:
-        raise ValueError("No gallery image selected")
-    full_path = os.path.realpath(os.path.join(root, relative.replace("/", os.sep)))
-    try:
-        inside_root = os.path.commonpath([root, full_path]) == root
-    except ValueError:
-        inside_root = False
-    if not inside_root:
-        raise ValueError("Image path is outside the ComfyUI image directory")
-    if not os.path.isfile(full_path):
-        raise ValueError(f"Image not found: {relative}")
-    if os.path.splitext(full_path)[1].lower() not in IMAGE_EXTENSIONS:
-        raise ValueError(f"Unsupported image type: {relative}")
-    return full_path
+    return resolve_asset(image, IMAGE_EXTENSIONS, kind="image")
+
 
 
 class LoadImageFromGallery:
@@ -84,20 +34,11 @@ class LoadImageFromGallery:
 
     @classmethod
     def INPUT_TYPES(cls):
-        files = _iter_gallery_images()
-        return {
-            "required": {
-                "image": (
-                    files if files else [""],
-                    {
-                        "tooltip": (
-                            "Images from the ComfyUI output directory and its "
-                            "subfolders, including files from previous sessions."
-                        ),
-                    },
-                ),
-            },
-        }
+        return input_types(
+            "image",
+            _iter_gallery_images(),
+            "Images from the ComfyUI output directory and its subfolders, including files from previous sessions.",
+        )
 
     RETURN_TYPES = ("IMAGE", "MASK")
     RETURN_NAMES = ("IMAGE", "MASK")
@@ -113,20 +54,11 @@ class LoadImageFromGallery:
 
     @classmethod
     def VALIDATE_INPUTS(cls, image):
-        try:
-            _resolve_image_path(image)
-        except (OSError, ValueError) as error:
-            return str(error)
-        return True
+        return validate(image, IMAGE_EXTENSIONS, kind="image")
 
     @classmethod
     def IS_CHANGED(cls, image):
-        try:
-            path = _resolve_image_path(image)
-            stat = os.stat(path)
-        except (OSError, ValueError):
-            return float("NaN")
-        return f"{getattr(stat, 'st_mtime_ns', int(stat.st_mtime * 1_000_000_000))}-{stat.st_size}"
+        return changed(image, IMAGE_EXTENSIONS, kind="image")
 
     def load_image(self, image):
         import numpy as np

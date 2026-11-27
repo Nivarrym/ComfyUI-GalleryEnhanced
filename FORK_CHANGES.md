@@ -77,6 +77,14 @@ is the unmodified 2.7.1 import.
 - Clicking the empty backdrop around the Info/Metadata view closes the preview,
   including when the default Ant toolbar is used.
 
+### Node module layout
+
+- Shared loader helpers live in `gallery_node_utils.py`.
+- Video/audio share `gallery_media_common.py`; each loader is in its own
+  `load_*_gallery_node.py` module.
+- The gallery button node is `gallery_button_node.py`.
+- `__init__.py` merges mapping dictionaries from the node modules.
+
 ### Asset comparison and mask editor
 
 - Compare is enabled only when exactly two visual assets (image or video) are
@@ -114,7 +122,7 @@ is the unmodified 2.7.1 import.
 - The node also fills ComfyUI's standard image fields (`imgs`, `images`,
   `previewMediaType`) and uses `[output]`/`[input]` path annotations, so the
   native mask editor, node menu and selection toolbar work on it directly.
-- The node has an **Upload File** button that opens the gallery picker instead
+- The node has an **Open gallery** button that opens the gallery picker instead
   of the browser file dialog.
 - The preview is built from the output-relative combo value via `/view` and
   refreshes on dropdown changes, Add to Graph, configure/undo and draw-time

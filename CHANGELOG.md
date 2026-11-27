@@ -4,6 +4,20 @@ All notable changes in **ComfyUI-Gallery-Fork** relative to the upstream
 [PanicTitan/ComfyUI-Gallery](https://github.com/PanicTitan/ComfyUI-Gallery),
 starting from upstream **2.7.1**. Maintained by **Nivarrym**.
 
+## 2.20.3
+
+- **Source workflow:** the card action now opens the embedded graph in a new
+  workflow tab inside the current ComfyUI session (no browser popup or new
+  ComfyUI session).
+- **Info view:** replaced the Ant info-preview path with a fixed metadata
+  overlay; clicking its backdrop closes it and it can be reopened repeatedly.
+- **Open gallery:** renamed the loader's node button from the misleading
+  "Upload File" to "Open gallery".
+- **Node layout:** split video/audio nodes into separate modules, added shared
+  filesystem/combo helpers (`gallery_node_utils.py`,
+  `gallery_media_common.py`), renamed `gallery_node.py` to
+  `gallery_button_node.py`, and simplified `__init__.py` registration.
+
 ## 2.20.2
 
 ### Folder sidebar context menu

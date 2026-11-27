@@ -23,7 +23,7 @@ metadata, graph loaders and batch management.
 - **Mask editor** — open ComfyUI's built-in mask editor directly from a card,
   the selection toolbar, or the `Load Image From Gallery` node.
 - **Graph integration** — Add to Graph, Replace selected node, in-node image
-  preview, an **Upload File** button that opens the gallery, and
+  preview, an **Open gallery** button on the loader, and
   `Load Image / Video / Audio From Gallery` nodes.
 - **Source workflow** — a card action opens the workflow embedded in the
   asset's metadata in a new workflow tab inside the current ComfyUI session.

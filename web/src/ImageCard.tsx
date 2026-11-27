@@ -345,7 +345,26 @@ const ImageCard = memo(function ImageCard({
 
             const baseName = image.name.replace(/\.[^.]+$/, '') || 'gallery';
             const tab = manager.createTemporary(`Source - ${baseName}.json`, workflow);
+            // createTemporary only stores the JSON. Force the workflow object to
+            // parse it into an activeState; otherwise openWorkflow can fall back
+            // to the currently active graph.
+            tab.content = JSON.stringify(workflow);
+            tab.originalContent = tab.content;
+            await tab.load({ force: true });
+            if (!tab.activeState) {
+                throw new Error('The workflow could not be parsed');
+            }
+            const state = tab.activeState;
             await manager.openWorkflow(tab);
+            // The workflow store's openWorkflow only switches the active tab;
+            // load the parsed state into the canvas explicitly.
+            if (typeof app.loadGraphData === 'function') {
+                await app.loadGraphData(state, true, true, tab, {
+                    checkForRerouteMigration: false,
+                    deferWarnings: true,
+                    skipAssetScans: false,
+                });
+            }
             setOpen(false);
         } catch (error) {
             message.error(`Could not open workflow: ${String(error)}`);
@@ -644,7 +663,6 @@ const ImageCard = memo(function ImageCard({
                         onClick={(event) => {
                             event.stopPropagation();
                             onInfoClick(image.name);
-                            openHiddenPreview();
                         }}
                     />
                 </Tooltip>
